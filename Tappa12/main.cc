@@ -40,9 +40,25 @@ int main() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+
+    std::string bersaglioPrecedente = "";
+    float velocitaPrecedente = -1.0f;
+
+
     while (running) {
         GestoreInput::gestisciInput(window, telecamera, sistemaPlanetario, running, mousePrecX, mousePrecY, moltiplicatoreTempo);
         
+
+        std::string bersaglioAttuale = sistemaPlanetario.getNomeBersaglio();
+        if (bersaglioAttuale != bersaglioPrecedente || moltiplicatoreTempo != velocitaPrecedente) {
+            std::cout << "\n[SISTEMA SOLARE] Bersaglio: " << bersaglioAttuale 
+                      << " | Velocita: " << moltiplicatoreTempo << "x" << std::endl;
+            bersaglioPrecedente = bersaglioAttuale;
+            velocitaPrecedente = moltiplicatoreTempo;
+        }
+
+
+
         float deltaTempoReale = orologioDiSistema.restart().asSeconds();
         float deltaTempo = deltaTempoReale * moltiplicatoreTempo;
         sistemaPlanetario.aggiorna(deltaTempo);
