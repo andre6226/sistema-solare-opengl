@@ -13,7 +13,7 @@
 
 int main() {
     Setup setup;
-    sf::RenderWindow& window = *setup.window; 
+    sf::Window& window = *setup.window; 
 
     Shader shaderProgram("Tappa11/base.vert", "Tappa11/base.frag");
     UniformLocations locs;
@@ -29,19 +29,6 @@ int main() {
     locs.proiezione      = glGetUniformLocation(shaderProgram.ID, "proiezione");
     locs.cameraPos = glGetUniformLocation(shaderProgram.ID, "cameraPos");
     glClearColor(0.02f, 0.02f, 0.05f, 1.0f);
-    
-    sf::Font font;
-    
-    
-    if (!font.openFromFile("Risorse/font.ttf")) {
-        std::cerr << "ERRORE: Impossibile caricare Risorse/font.ttf!" << std::endl;
-    }
-    
-    
-    sf::Text testoHUD(font);
-    testoHUD.setCharacterSize(24);
-    testoHUD.setFillColor(sf::Color(255, 255, 255)); 
-    testoHUD.setPosition(sf::Vector2f(15.0f, 15.0f)); 
 
     float mousePrecX = 0.0f, mousePrecY = 0.0f;
     bool running = true;
@@ -74,13 +61,7 @@ int main() {
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        
-        window.pushGLStates(); 
-        
-        testoHUD.setString("Target: " + sistemaPlanetario.getNomeBersaglio());
-        window.draw(testoHUD);
-        
-        window.popGLStates();
+
 
         window.display();
     }

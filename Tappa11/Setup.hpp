@@ -6,7 +6,7 @@
 
 class Setup {
 public:
-    sf::RenderWindow* window; 
+    sf::Window* window; 
     Setup() {
         sf::ContextSettings settings;
         settings.depthBits = 32;
@@ -14,9 +14,9 @@ public:
         settings.antiAliasingLevel = 4;
         settings.majorVersion = 4;
         settings.minorVersion = 1;
-        settings.attributeFlags = sf::ContextSettings::Attribute::Default;     
+        settings.attributeFlags = sf::ContextSettings::Attribute::Core;     
              
-        window = new sf::RenderWindow(sf::VideoMode({800, 600}), "Sistema Solare", sf::Style::Default, sf::State::Windowed, settings);
+        window = new sf::Window(sf::VideoMode({800, 600}), "Sistema Solare", sf::Style::Default, sf::State::Windowed, settings);
         
         window->setVerticalSyncEnabled(true);
         if (!window->setActive(true)) {

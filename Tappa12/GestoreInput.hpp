@@ -3,13 +3,11 @@
 
 class GestoreInput {
 public:
-    static void gestisciInput(sf::RenderWindow& window, Telecamera& telecamera, SistemaSolare& sistema, bool& running, float& mousePrecX, float& mousePrecY, float& moltiplicatoreTempo) {
+    static void gestisciInput(sf::Window& window, Telecamera& telecamera, SistemaSolare& sistema, bool& running, float& mousePrecX, float& mousePrecY, float& moltiplicatoreTempo) {
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) running = false;
             else if (const auto* resized = event->getIf<sf::Event::Resized>()) {
                 glViewport(0, 0, resized->size.x, resized->size.y);
-                sf::View nuovaVista(sf::FloatRect({0.f, 0.f}, {static_cast<float>(resized->size.x), static_cast<float>(resized->size.y)}));
-                window.setView(nuovaVista);
             }
             else if (const auto* mouse = event->getIf<sf::Event::MouseMoved>()) {
                 float deltaX = mouse->position.x - mousePrecX;

@@ -46,9 +46,7 @@ public:
         angoloOrbita += velocitaOrbitale * deltaTempo;
         if (angoloOrbita > glm::two_pi<float>()) angoloOrbita -= glm::two_pi<float>();
 
-        // Calcoliamo la velocità di rotazione reale così le lune sono in blocco mareale
-        float velocitaReale = velocitaRotazioneAssiale - velocitaOrbitale;
-        angoloRotazione += velocitaReale * deltaTempo;
+        angoloRotazione += velocitaRotazioneAssiale * deltaTempo;
         
         
         if (angoloRotazione > glm::two_pi<float>()) angoloRotazione -= glm::two_pi<float>();
