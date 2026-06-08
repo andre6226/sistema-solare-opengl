@@ -62,7 +62,7 @@ public:
         }
     }
 
-    glm::vec3 +getPosizioneBersaglio() const {
+    glm::vec3 getPosizioneBersaglio() const {
         if (bersaglioAttuale) return bersaglioAttuale->getPosizioneGlobale();
         return glm::vec3(0.0f);
     }
