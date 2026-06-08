@@ -1,29 +1,3 @@
-#pragma once
-#include "../glad/gl.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/constants.hpp>
-#include <vector>
-#include <cmath>
-#include "Geometria.hpp"
-
-class Sphere : public Geometria{
-private:
-    unsigned int VAO, VBO, EBO;
-    int indexCount;
-
-public:
-    Sphere(float radius, int paralleliCount, int meridianiCount) {
-        std::vector<float> vertices;
-        std::vector<unsigned int> indices;
-
-        for(int i = 0; i <= paralleliCount; ++i) {
-            float phi = glm::pi<float>() * (float)i / paralleliCount; 
-            for(int j = 0; j <= meridianiCount; ++j) {
-                float theta = 2.0f * glm::pi<float>() * (float)j / meridianiCount;
-
-                float x = radius * std::sin(phi) * std::cos(theta);
-                float y = radius * std::cos(phi);
-                float z = radius * std::sin(phi) * std::sin(theta);
 
                 // --- CALCOLO COORDINATE UV ---
                 // U: percentuale di giro orizzontale compiuto (INVERTITA)
