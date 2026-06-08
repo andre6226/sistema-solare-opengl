@@ -46,8 +46,12 @@ public:
         angoloOrbita += velocitaOrbitale * deltaTempo;
         if (angoloOrbita > glm::two_pi<float>()) angoloOrbita -= glm::two_pi<float>();
 
-        float velocitaReale = velocitaRotazioneAssiale - velocitaOrbitale;
-        angoloRotazione += velocitaReale * deltaTempo;
+        /*
+            float velocitaReale = velocitaRotazioneAssiale - velocitaOrbitale;
+            angoloRotazione += velocitaReale * deltaTempo;
+        
+        */
+        angoloRotazione += velocitaRotazioneAssiale * deltaTempo;
         
         if (angoloRotazione > glm::two_pi<float>()) angoloRotazione -= glm::two_pi<float>();
         if (angoloRotazione < 0.0f) angoloRotazione += glm::two_pi<float>();
@@ -91,7 +95,6 @@ public:
         glm::mat3 normaleMatrice = glm::mat3(glm::transpose(glm::inverse(matriceDisegno)));
         glUniformMatrix3fv(locs.normaleMatrice, 1, GL_FALSE, &normaleMatrice[0][0]);
 
-        glUniform3f(locs.coloreOggetto, 1.0f, 1.0f, 1.0f); 
         glUniform1i(locs.isSole, (nome == "Sole") ? 1 : 0);
         glUniform1i(locs.isAnello, (nome == "AnelliSaturno") ? 1 : 0);
         glUniform1i(locs.isCielo, (nome == "Stelle") ? 1 : 0);

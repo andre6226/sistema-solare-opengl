@@ -72,7 +72,7 @@ int main() {
         shaderProgram.use();
         glUniformMatrix4fv(locs.vista, 1, GL_FALSE, &matriceVista[0][0]);
         glUniformMatrix4fv(locs.proiezione, 1, GL_FALSE, &matriceProiezione[0][0]);
-        glm::vec3 camPos = telecamera.getPosizione();
+        glm::vec3 camPos = telecamera.getPosizione(posizioneBersaglio);
         glUniform3fv(locs.cameraPos, 1, &camPos[0]);
         sistemaPlanetario.disegna(shaderProgram, locs);
 

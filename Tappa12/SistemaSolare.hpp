@@ -62,7 +62,7 @@ public:
         }
     }
 
-    glm::vec3 getPosizioneBersaglio() const {
+    glm::vec3 +getPosizioneBersaglio() const {
         if (bersaglioAttuale) return bersaglioAttuale->getPosizioneGlobale();
         return glm::vec3(0.0f);
     }
@@ -78,7 +78,7 @@ public:
         float scala        = convertitore.getDimensione(datiReali);
         float velOrbita    = convertitore.getVelocitaOrbitale(datiReali);
         float velRotazione = convertitore.getVelocitaRotazione(datiReali);
-        float inclinazione = convertitore.getInclinazione(datiReali); // NOVITÀ
+        float inclinazione = convertitore.getInclinazione(datiReali);
 
         std::string percorsoTexture = std::string("Risorse/") + datiReali.nome + ".jpg";
         
@@ -179,7 +179,7 @@ public:
         }
 
         if (stelleSfondo) {
-            stelleSfondo->disegna(shader, locs, glm::mat4(1.0f)); // <--- AGGIUNTO
+            stelleSfondo->disegna(shader, locs, glm::mat4(1.0f)); 
         }
 
 

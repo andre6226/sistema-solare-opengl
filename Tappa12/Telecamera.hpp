@@ -33,14 +33,7 @@ public:
     }
 
     glm::mat4 getMatriceVista(glm::vec3 puntoOsservato) const {
-        float thetaRad = glm::radians(angoloTheta);
-        float phiRad   = glm::radians(angoloPhi);
-
-        float x = raggio * glm::cos(phiRad) * glm::sin(thetaRad);
-        float y = raggio * glm::sin(phiRad);
-        float z = raggio * glm::cos(phiRad) * glm::cos(thetaRad);
-
-        glm::vec3 posizioneTelecamera = puntoOsservato + glm::vec3(x, y, z);
+        glm::vec3 posizioneTelecamera = getPosizione(puntoOsservato);
         
         glm::vec3 vettoreUp(0.0f, 1.0f, 0.0f); 
 
@@ -55,7 +48,7 @@ public:
         return glm::perspective(fov, aspect_ratio, pianoVicino, pianoLontano);
     }
 
-    glm::vec3 getPosizione() const {
+    glm::vec3 getPosizione(glm::vec3 puntoOsservato) const {
         float thetaRad = glm::radians(angoloTheta);
         float phiRad   = glm::radians(angoloPhi);
         
@@ -63,7 +56,7 @@ public:
         float y = raggio * glm::sin(phiRad);
         float z = raggio * glm::cos(phiRad) * glm::cos(thetaRad);
         
-        return glm::vec3(x, y, z);
+        return puntoOsservato + glm::vec3(x, y, z);
     }
 
 
