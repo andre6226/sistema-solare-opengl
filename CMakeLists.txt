@@ -73,65 +73,6 @@ function(setup_target_resources target_name)
     endif()
 endfunction()
 
-# -----------------------------------------------------------------------------
-# GESTIONE DELLE TAPPE D'ESAME
-# -----------------------------------------------------------------------------
-
-# Tappa 01
-add_executable(Tappa01 Tappa01/main.cc)
-target_link_libraries(Tappa01 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa01)
-
-# Tappa 02
-add_executable(Tappa02 Tappa02/main.cc)
-target_link_libraries(Tappa02 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa02)
-
-# Tappa 03
-add_executable(Tappa03 Tappa03/main.cc)
-target_link_libraries(Tappa03 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa03)
-
-# Tappa 04
-add_executable(Tappa04 Tappa04/main.cc)
-target_link_libraries(Tappa04 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa04)
-
-# Tappa 05
-add_executable(Tappa05 Tappa05/main.cc)
-target_link_libraries(Tappa05 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa05)
-
-# Tappa 06
-add_executable(Tappa06 Tappa06/main.cc)
-target_link_libraries(Tappa06 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa06)
-
-# Tappa 07
-add_executable(Tappa07 Tappa07/main.cc)
-target_link_libraries(Tappa07 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa07)
-
-# Tappa 08
-add_executable(Tappa08 Tappa08/main.cc)
-target_link_libraries(Tappa08 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa08)
-
-# Tappa 09
-add_executable(Tappa09 Tappa09/main.cc)
-target_link_libraries(Tappa09 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa09)
-
-# Tappa 10
-add_executable(Tappa10 Tappa10/main.cc)
-target_link_libraries(Tappa10 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa10)
-
-
-add_executable(Tappa11 Tappa11/main.cc)
-target_link_libraries(Tappa11 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa11)
-
 
 add_executable(SolarSystem SolarSystem/main.cc)
 target_link_libraries(SolarSystem PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
