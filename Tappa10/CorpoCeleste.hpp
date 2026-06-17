@@ -2,7 +2,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
-#include <string>
 #include "Geometria.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
@@ -42,16 +41,15 @@ public:
         lune.push_back(satellite);
     }
 
+    //calcoliamo in anticipo la posizioneGlobale durante l'aggiornamento fisico ,invece che solo quando disegnavamo, così evitiamo il problema della telecamera che leggeva dati vecchi di un frame
     void aggiorna(float deltaTempo, glm::mat4 matricePadre = glm::mat4(1.0f)) {
         angoloOrbita += velocitaOrbitale * deltaTempo;
         if (angoloOrbita > glm::two_pi<float>()) angoloOrbita -= glm::two_pi<float>();
 
-        /*
-            float velocitaReale = velocitaRotazioneAssiale - velocitaOrbitale;
-            angoloRotazione += velocitaReale * deltaTempo;
+        // Calcoliamo la velocità di rotazione reale così le lune sono in blocco mareale
+        float velocitaReale = velocitaRotazioneAssiale - velocitaOrbitale;
+        angoloRotazione += velocitaReale * deltaTempo;
         
-        */
-        angoloRotazione += velocitaRotazioneAssiale * deltaTempo;
         
         if (angoloRotazione > glm::two_pi<float>()) angoloRotazione -= glm::two_pi<float>();
         if (angoloRotazione < 0.0f) angoloRotazione += glm::two_pi<float>();
@@ -59,8 +57,6 @@ public:
         glm::mat4 matriceOrbitale = glm::mat4(1.0f);
         matriceOrbitale = glm::rotate(matriceOrbitale, angoloOrbita, glm::vec3(0.0f, 1.0f, 0.0f));
         matriceOrbitale = glm::translate(matriceOrbitale, glm::vec3(raggioOrbita, 0.0f, 0.0f));
-        
-        matriceOrbitale = glm::rotate(matriceOrbitale, -angoloOrbita, glm::vec3(0.0f, 1.0f, 0.0f));
         
         glm::mat4 matricePosizionePianeta = matricePadre * matriceOrbitale;
         
@@ -75,42 +71,39 @@ public:
         }
     }
 
-    void disegna(Shader& shader, const UniformLocations& locs, glm::mat4 matricePadre) {            
-        glm::mat4 matriceOrbitale = glm::mat4(1.0f);
-        matriceOrbitale = glm::rotate(matriceOrbitale, angoloOrbita, glm::vec3(0.0f, 1.0f, 0.0f));
-        matriceOrbitale = glm::translate(matriceOrbitale, glm::vec3(raggioOrbita, 0.0f, 0.0f));
-        //da spazio eliocentrico a spazio galileiano assoluto
-        matriceOrbitale = glm::rotate(matriceOrbitale, -angoloOrbita, glm::vec3(0.0f, 1.0f, 0.0f));
+    void disegna(Shader& shader, const UniformLocations& locs, glm::mat4 matricePadre) {            glm::mat4 matriceOrbitale = glm::mat4(1.0f);
+            matriceOrbitale = glm::rotate(matriceOrbitale, angoloOrbita, glm::vec3(0.0f, 1.0f, 0.0f));
+            matriceOrbitale = glm::translate(matriceOrbitale, glm::vec3(raggioOrbita, 0.0f, 0.0f));
+            
+            glm::mat4 matricePosizionePianeta = matricePadre * matriceOrbitale;
+            
+            posizioneGlobale = glm::vec3(matricePosizionePianeta[3]);
+
+            glm::mat4 matriceGlobaleInclinata = glm::rotate(matricePosizionePianeta, inclinazioneAssiale, glm::vec3(0.0f, 0.0f, 1.0f));
+            glm::mat4 matriceDisegno = glm::rotate(matriceGlobaleInclinata, angoloRotazione, glm::vec3(0.0f, 1.0f, 0.0f));
+            matriceDisegno = glm::scale(matriceDisegno, glm::vec3(scala));
+
+            glUniformMatrix4fv(locs.modello, 1, GL_FALSE, &matriceDisegno[0][0]);
         
-        glm::mat4 matricePosizionePianeta = matricePadre * matriceOrbitale;
-        
-        posizioneGlobale = glm::vec3(matricePosizionePianeta[3]);
+            glm::mat3 normaleMatrice = glm::mat3(glm::transpose(glm::inverse(matriceDisegno)));
+            glUniformMatrix3fv(locs.normaleMatrice, 1, GL_FALSE, &normaleMatrice[0][0]);
 
-        glm::mat4 matriceGlobaleInclinata = glm::rotate(matricePosizionePianeta, inclinazioneAssiale, glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 matriceDisegno = glm::rotate(matriceGlobaleInclinata, angoloRotazione, glm::vec3(0.0f, 1.0f, 0.0f));
-        matriceDisegno = glm::scale(matriceDisegno, glm::vec3(scala));
+            glUniform3f(locs.coloreOggetto, 1.0f, 1.0f, 1.0f); 
+            glUniform1i(locs.isSole, (nome == "Sole") ? 1 : 0);
+            glUniform1i(locs.isAnello, (nome == "AnelliSaturno") ? 1 : 0);
 
-        glUniformMatrix4fv(locs.modello, 1, GL_FALSE, &matriceDisegno[0][0]);
-    
-        glm::mat3 normaleMatrice = glm::mat3(glm::transpose(glm::inverse(matriceDisegno)));
-        glUniformMatrix3fv(locs.normaleMatrice, 1, GL_FALSE, &normaleMatrice[0][0]);
+            if (textureCorpo != nullptr) {
+                textureCorpo->bind(0); 
+            }
 
-        glUniform1i(locs.isSole, (nome == "Sole") ? 1 : 0);
-        glUniform1i(locs.isAnello, (nome == "AnelliSaturno") ? 1 : 0);
-        glUniform1i(locs.isCielo, (nome == "Stelle") ? 1 : 0);
+            geometria->draw();
 
-        if (textureCorpo != nullptr) {
-            textureCorpo->bind(0); 
+            // Passaggio ricorsivo
+            glm::mat4 matricePerFigli = inclinaFigli ? matriceGlobaleInclinata : matricePosizionePianeta;
+            for (CorpoCeleste* luna : lune) {
+                luna->disegna(shader, locs, matricePerFigli); 
+            }
         }
-
-        geometria->draw();
-
-        // Passaggio ricorsivo per i figli
-        glm::mat4 matricePerFigli = inclinaFigli ? matriceGlobaleInclinata : matricePosizionePianeta;
-        for (CorpoCeleste* luna : lune) {
-            luna->disegna(shader, locs, matricePerFigli); 
-        }
-    }
 
     void setInclinaFigli(bool inclina) {
         inclinaFigli = inclina;
