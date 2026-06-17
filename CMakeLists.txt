@@ -59,6 +59,6 @@ function(setup_target_resources target_name)
 endfunction()
 
 
-add_executable(Tappa12 Tappa12/main.cc)
-target_link_libraries(Tappa12 PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
-setup_target_resources(Tappa12)
+add_executable(SolarSystem SolarSystem/main.cc)
+target_link_libraries(SolarSystem PRIVATE common SFML::Window SFML::Graphics OpenGL::GL glm::glm-header-only)
+setup_target_resources(SolarSystem)
