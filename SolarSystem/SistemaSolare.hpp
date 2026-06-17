@@ -80,7 +80,7 @@ public:
         float velRotazione = convertitore.getVelocitaRotazione(datiReali);
         float inclinazione = convertitore.getInclinazione(datiReali);
 
-        std::string percorsoTexture = std::string("Risorse/") + datiReali.nome + ".jpg";
+        std::string percorsoTexture = std::string("resources/") + datiReali.nome + ".jpg";
         
         auto nuovaTexture = std::make_unique<Texture>(percorsoTexture);
         Texture* ptrTexture = nuovaTexture.get();
@@ -105,7 +105,7 @@ public:
 
 
 
-        std::string percorsoStelle = "Risorse/Stelle.jpg"; 
+        std::string percorsoStelle = "resources/Stelle.jpg"; 
         auto texStelle = std::make_unique<Texture>(percorsoStelle);
         Texture* ptrTexStelle = texStelle.get();
         texturesCaricate.push_back(std::move(texStelle));
@@ -149,9 +149,8 @@ public:
         creaCorpo(Astr::Encelado, saturno);
 
 
-        // --- ACCROCCHIO ANELLI DI SATURNO ---
 
-        std::string percorsoAnelli = "Risorse/AnelliSaturno.png"; 
+        std::string percorsoAnelli = "resources/AnelliSaturno.png"; 
         auto texAnelli = std::make_unique<Texture>(percorsoAnelli);
         Texture* ptrTexAnelli = texAnelli.get();
         texturesCaricate.push_back(std::move(texAnelli));
