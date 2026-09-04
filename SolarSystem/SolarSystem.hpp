@@ -135,9 +135,15 @@ public:
     // effectively at infinity. Anchored at the origin it showed parallax: travel
     // out to Neptune and the constellations visibly slid across the sky.
     void updateSkyPosition(const glm::vec3& cameraPosition) {
-        if (skySphere) {
-            skySphere->update(0.0f, glm::translate(glm::mat4(1.0f), cameraPosition));
-        }
+        if (!skySphere) return;
+
+        // Follows the camera so the stars stay at infinity, and carries the
+        // fixed rotation that puts the galactic plane at its true inclination to
+        // the planets' orbital plane instead of lying flat in it.
+        static const glm::mat4 skyOrientation =
+            glm::mat4(Astro::galacticToWorld() * Astro::skyTextureToGalactic());
+
+        skySphere->update(0.0f, glm::translate(glm::mat4(1.0f), cameraPosition) * skyOrientation);
     }
 
     void draw(const UniformLocations& locs, const glm::vec3& cameraPosition) {

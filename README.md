@@ -108,6 +108,45 @@ sits at 49 W, 1 N, which is Stickney.
 If the files are missing the program still runs, falling back to a sphere and
 saying so on stderr.
 
+## The sky
+
+The star map is an all-sky panorama in **galactic** coordinates, not equatorial
+ones: the Milky Way runs dead flat along its centre line, which is only true in
+that frame. Draped straight onto the sky sphere it laid the galactic plane on
+top of the planets' orbital plane, when the two are inclined about 60 degrees to
+each other, so nothing in the sky sat where it belongs.
+
+`Astro::galacticToWorld()` composes the IAU 1958 galactic frame (north galactic
+pole and galactic centre at their J2000 equatorial positions) with the obliquity
+of the ecliptic and this program's axis convention. It is built from two
+measured directions rather than Euler angles, which sidesteps every sign trap,
+and the published pair is re-orthonormalised because it is not exactly
+perpendicular. As a check, the resulting galactic/orbital plane inclination
+comes out at 60.2 degrees.
+
+`Astro::skyTextureToGalactic()` handles the panorama's own layout, which was
+measured rather than assumed. Searching for the Large Magellanic Cloud - the
+brightest extended source well clear of the galactic plane - across the four
+possible layouts, only one puts a source at its catalogue position, at 7 times
+the local background and 10 times better than any alternative: galactic
+longitude decreases to the right, and latitude runs upside down. Composed with
+the sphere's own parameterisation this is a proper rotation, so it lives in the
+model matrix and needs no special case in the shader.
+
+Aiming the camera along the computed direction of the LMC does land on it.
+
+## Texture filtering
+
+Longitude wraps around a sphere, latitude does not. `GL_REPEAT` on the T axis
+made the filter blend the top row of a map into its bottom one, smearing the
+south pole across the north; it is `GL_CLAMP_TO_EDGE`.
+
+Where a UV sphere's meridians converge, one texel footprint covers a wide,
+razor-thin strip, and an isotropic filter must pick a single mip level for both
+axes. That compromise is what drew the radial streaks at the poles, so
+anisotropic filtering is enabled at the driver's maximum. It is an extension
+under OpenGL 3.3, probed at runtime and skipped where absent.
+
 ## A note on the HUD
 
 The overlay is drawn with its own core-profile shader, not with SFML's 2D

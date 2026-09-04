@@ -1,4 +1,5 @@
 #pragma once
+#include <glm/glm.hpp>
 #include <glm/trigonometric.hpp>
 #include <algorithm>
 #include <cmath>
@@ -41,6 +42,79 @@ namespace Astro {
     // Distance beyond which a body is treated as orbiting the Sun rather than a
     // planet. Moons and planets get different compression curves.
     inline constexpr double moonDistanceLimitKm = 3000000.0;
+
+    // --- Sky orientation ---
+    //
+    // The star map is an all-sky panorama in GALACTIC coordinates: the Milky Way
+    // runs dead flat along its centre line, which is only true in that frame.
+    // Pasted straight onto the sky sphere it laid the galactic plane on top of
+    // the planets' orbital plane, when the two are inclined about 60 degrees to
+    // each other, so every constellation sat in the wrong place.
+    //
+    // IAU 1958 definition, J2000 equatorial positions.
+    inline constexpr double northGalacticPoleRaDeg  = 192.85948;
+    inline constexpr double northGalacticPoleDecDeg =  27.12825;
+    inline constexpr double galacticCentreRaDeg     = 266.405;
+    inline constexpr double galacticCentreDecDeg    = -28.936;
+    inline constexpr double eclipticObliquityDeg    =  23.4392911;
+
+    inline glm::vec3 equatorialDirection(double raDeg, double decDeg) {
+        const double ra = glm::radians(raDeg), dec = glm::radians(decDeg);
+        return glm::vec3(std::cos(dec) * std::cos(ra),
+                         std::cos(dec) * std::sin(ra),
+                         std::sin(dec));
+    }
+
+    // Maps a direction on the sky sphere's own surface to the galactic direction
+    // the star map paints there.
+    //
+    // The panorama's layout was measured rather than assumed, by hunting for the
+    // Large Magellanic Cloud - the brightest extended source well off the
+    // galactic plane. Of the four possible layouts it is the only one that puts
+    // a source at the LMC's catalogue position, 7x above the local background
+    // and 10x better than any alternative: galactic longitude DECREASES to the
+    // right, and latitude runs upside down, with the south galactic pole at the
+    // top of the image.
+    //
+    // Composing that with the sphere's own parameterisation happens to give a
+    // proper rotation, determinant +1, so it can live in the model matrix
+    // without inverting the winding and needs no special case in the shader.
+    inline glm::mat3 skyTextureToGalactic() {
+        return glm::mat3(-1.0f,  0.0f,  0.0f,   // columns
+                          0.0f,  0.0f, -1.0f,
+                          0.0f, -1.0f,  0.0f);
+    }
+
+    // Takes a direction given in the galactic frame into this program's world
+    // frame, where the planets orbit the XZ plane and +Y is the ecliptic north.
+    inline glm::mat3 galacticToWorld() {
+        // Build the galactic axes as seen from the equatorial frame. Using two
+        // measured directions rather than Euler angles avoids every sign trap;
+        // the published pair is not exactly orthogonal, so it is re-orthonormalised.
+        const glm::vec3 zGal = glm::normalize(equatorialDirection(northGalacticPoleRaDeg,
+                                                                  northGalacticPoleDecDeg));
+        glm::vec3 xGal = glm::normalize(equatorialDirection(galacticCentreRaDeg,
+                                                            galacticCentreDecDeg));
+        xGal = glm::normalize(xGal - zGal * glm::dot(zGal, xGal));
+        const glm::vec3 yGal = glm::cross(zGal, xGal);
+
+        // Columns carry galactic components into the equatorial frame.
+        const glm::mat3 galacticToEquatorial(xGal, yGal, zGal);
+
+        // Equatorial to ecliptic: a rotation about the vernal equinox by the
+        // obliquity.
+        const float e = glm::radians(static_cast<float>(eclipticObliquityDeg));
+        const glm::mat3 equatorialToEcliptic(1.0f,  0.0f,          0.0f,
+                                             0.0f,  std::cos(e), -std::sin(e),
+                                             0.0f,  std::sin(e),  std::cos(e));
+
+        // Ecliptic to world: the ecliptic pole becomes +Y, the orbital plane XZ.
+        const glm::mat3 eclipticToWorld(1.0f, 0.0f,  0.0f,
+                                        0.0f, 0.0f, -1.0f,
+                                        0.0f, 1.0f,  0.0f);
+
+        return eclipticToWorld * equatorialToEcliptic * galacticToEquatorial;
+    }
 
 // Turns real measurements into render units. The whole point is compression:
 // at true scale the planets would be invisible dots separated by empty space,
