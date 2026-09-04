@@ -8,14 +8,16 @@ class Texture {
 public:
     GLuint ID = 0;
 
-    Texture(const std::string& path) {
+    explicit Texture(const std::string& path) {
 
         sf::Image image;
         if (!image.loadFromFile(path)) {
-            std::cerr << "ERRORE: Impossibile caricare la texture in: " << path << std::endl;
+            std::cerr << "ERROR: could not load texture at: " << path << std::endl;
             ID = 0;
             return;
         }
+        // Image files store the top row first, OpenGL expects the bottom row
+        // first, so the rows are flipped once at load time.
         image.flipVertically();
 
         glGenTextures(1, &ID);
@@ -41,20 +43,20 @@ public:
         }
     }
 
-    // La texture possiede un handle OpenGL: una copia lo cancellerebbe due volte.
-    // Lo spostamento e' consentito e svuota l'oggetto sorgente.
+    // The texture owns an OpenGL handle: a copy would delete it twice.
+    // Moving is allowed and leaves the source object empty.
     Texture(const Texture&)            = delete;
     Texture& operator=(const Texture&) = delete;
 
-    Texture(Texture&& altra) noexcept : ID(altra.ID) {
-        altra.ID = 0;
+    Texture(Texture&& other) noexcept : ID(other.ID) {
+        other.ID = 0;
     }
 
-    Texture& operator=(Texture&& altra) noexcept {
-        if (this != &altra) {
+    Texture& operator=(Texture&& other) noexcept {
+        if (this != &other) {
             if (ID != 0) glDeleteTextures(1, &ID);
-            ID = altra.ID;
-            altra.ID = 0;
+            ID = other.ID;
+            other.ID = 0;
         }
         return *this;
     }

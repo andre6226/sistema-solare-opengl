@@ -1,23 +1,23 @@
-#version 410 core
+#version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
-layout (location = 2) in vec2 aTexCoords; 
+layout (location = 2) in vec2 aTexCoords;
 
-uniform mat4 modello;
-uniform mat4 vista;
-uniform mat4 proiezione;
-uniform mat3 normaleMatrice;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat3 normalMatrix;
 
-out vec3 vPosizioneMondo;
+out vec3 vWorldPos;
 out vec3 vNormal;
-out vec2 TexCoord; 
+out vec2 vTexCoord;
 
 void main() {
-    vec4 posMondo = modello * vec4(aPos, 1.0);
-    vPosizioneMondo = posMondo.xyz;
-    vNormal = normalize(normaleMatrice * aNormal);
-    
-    TexCoord = aTexCoords; // Le passiamo così come sono
-    
-    gl_Position = proiezione * vista * posMondo;
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    vWorldPos = worldPos.xyz;
+    vNormal = normalize(normalMatrix * aNormal);
+
+    vTexCoord = aTexCoords; // passed through unchanged
+
+    gl_Position = projection * view * worldPos;
 }

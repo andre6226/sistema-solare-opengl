@@ -3,33 +3,32 @@
 #include <SFML/Graphics.hpp>
 #include <stdexcept>
 
-// Possiede la finestra e il contesto OpenGL. La finestra e' un membro per
-// valore: non c'e' piu' una new/delete manuale da bilanciare, e la classe non
-// e' copiabile perche' sf::Window non lo e'.
+// Owns the window and the OpenGL context. The window is a by-value member:
+// there is no manual new/delete pair to keep balanced, and the class is
+// non-copyable because sf::Window is.
 class Setup {
 public:
     sf::Window window;
 
     Setup()
-        : window(sf::VideoMode({800, 600}), "Sistema Solare",
-                 sf::Style::Default, sf::State::Windowed, impostazioniContesto()) {
+        : window(sf::VideoMode({800, 600}), "Solar System",
+                 sf::Style::Default, sf::State::Windowed, contextSettings()) {
 
         window.setVerticalSyncEnabled(true);
 
-        // Senza questo, tenere premuto SHIFT genera una raffica di KeyPressed e
-        // il moltiplicatore di tempo cresce in modo esponenziale.
+        // Without this, holding SHIFT produces a burst of KeyPressed events and
+        // the time scale grows exponentially.
         window.setKeyRepeatEnabled(false);
 
         if (!window.setActive(true)) {
-            throw std::runtime_error("impossibile attivare il contesto OpenGL sulla finestra");
+            throw std::runtime_error("could not activate the OpenGL context on the window");
         }
 
-        // gladLoadGL restituisce 0 in caso di fallimento: senza questo controllo
-        // tutti i puntatori a funzione restano nulli e il primo comando OpenGL
-        // fa crashare il programma senza alcun messaggio.
+        // gladLoadGL returns 0 on failure. Without this check every function
+        // pointer stays null and the first OpenGL call crashes the program with
+        // no diagnostic at all.
         if (gladLoadGL(sf::Context::getFunction) == 0) {
-            throw std::runtime_error("caricamento delle funzioni OpenGL fallito (gladLoadGL). "
-                                     "Il driver espone un contesto 4.1 core?");
+            throw std::runtime_error("failed to load the OpenGL function pointers (gladLoadGL)");
         }
 
         glEnable(GL_DEPTH_TEST);
@@ -41,13 +40,17 @@ public:
     Setup& operator=(Setup&&)      = delete;
 
 private:
-    static sf::ContextSettings impostazioniContesto() {
+    static sf::ContextSettings contextSettings() {
         sf::ContextSettings settings;
-        settings.depthBits         = 32;
+        // 24 bits is what every desktop driver actually hands out; asking for 32
+        // only produced a mismatch warning at startup.
+        settings.depthBits         = 24;
         settings.stencilBits       = 8;
         settings.antiAliasingLevel = 4;
-        settings.majorVersion      = 4;
-        settings.minorVersion      = 1;
+        // Nothing in this project needs OpenGL beyond 3.3, and asking for the
+        // lowest version that suffices keeps it portable to older drivers.
+        settings.majorVersion      = 3;
+        settings.minorVersion      = 3;
         settings.attributeFlags    = sf::ContextSettings::Attribute::Core;
         return settings;
     }

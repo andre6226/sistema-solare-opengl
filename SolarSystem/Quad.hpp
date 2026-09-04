@@ -1,14 +1,15 @@
 #pragma once
 #include "../glad/gl.h"
-#include "Geometria.hpp"
+#include "Geometry.hpp"
 
-class Quad : public Geometria {
+// Unit quad lying in the XZ plane, used as the carrier for Saturn's rings.
+class Quad : public Geometry {
 private:
     unsigned int VAO, VBO, EBO;
 public:
     Quad() {
         float vertices[] = {
-            // Posizioni (X, Y, Z)     // Normali (in alto)       // UV
+            // Positions (X, Y, Z)     // Normals (up)            // UV
             -1.0f, 0.0f, -1.0f,        0.0f, 1.0f, 0.0f,          0.0f, 1.0f,
              1.0f, 0.0f, -1.0f,        0.0f, 1.0f, 0.0f,          1.0f, 1.0f,
              1.0f, 0.0f,  1.0f,        0.0f, 1.0f, 0.0f,          1.0f, 0.0f,
@@ -36,8 +37,8 @@ public:
         glBindVertexArray(0);
     }
 
-    // Copia e spostamento sono gia' vietati da Geometria: qui basta restituire
-    // al driver i tre buffer allocati nel costruttore.
+    // Copy and move are already forbidden by Geometry: all that is left here is
+    // handing the three buffers back to the driver.
     ~Quad() override {
         glDeleteVertexArrays(1, &VAO);
         glDeleteBuffers(1, &VBO);
