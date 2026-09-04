@@ -32,6 +32,20 @@ public:
         }
 
         glEnable(GL_DEPTH_TEST);
+
+        // Shaders now output linear colour; the hardware encodes it to sRGB on
+        // write. Doing it here rather than with a pow() in the shader means the
+        // encoding happens AFTER blending, so the semi-transparent rings blend
+        // in linear space, which is the physically correct place for it.
+        glEnable(GL_FRAMEBUFFER_SRGB);
+
+        // Every mesh is closed and seen from the outside, so half the triangles
+        // are back-facing and can be rejected before rasterisation. The two
+        // exceptions (the star sphere, seen from within, and the ring quad,
+        // which is deliberately double-sided) flip this locally while drawing.
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
     }
 
     Setup(const Setup&)            = delete;
@@ -47,6 +61,7 @@ private:
         settings.depthBits         = 24;
         settings.stencilBits       = 8;
         settings.antiAliasingLevel = 4;
+        settings.sRgbCapable       = true;
         // Nothing in this project needs OpenGL beyond 3.3, and asking for the
         // lowest version that suffices keeps it portable to older drivers.
         settings.majorVersion      = 3;

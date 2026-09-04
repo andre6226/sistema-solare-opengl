@@ -52,13 +52,17 @@ public:
                 int p1 = i * (meridians + 1) + j;
                 int p2 = p1 + meridians + 1;
 
+                // Counter-clockwise winding as seen from OUTSIDE the sphere, so
+                // that the default glFrontFace(GL_CCW) treats the outer surface
+                // as the front face. The original order was the mirror of this
+                // and only worked because face culling was disabled.
                 indices.push_back(p1);
-                indices.push_back(p2);
                 indices.push_back(p1 + 1);
+                indices.push_back(p2);
 
                 indices.push_back(p1 + 1);
-                indices.push_back(p2);
                 indices.push_back(p2 + 1);
+                indices.push_back(p2);
             }
         }
         indexCount = static_cast<int>(indices.size());

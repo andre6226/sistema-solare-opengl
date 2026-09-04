@@ -25,14 +25,25 @@ private:
     CelestialBody* sun;
     CelestialBody* currentTarget;
 
+    // Non-owning list of the alpha-blended bodies, gathered once after the tree
+    // is built and re-sorted per frame for the transparent pass.
+    std::vector<CelestialBody*> transparentBodies;
+
     // Outer radius of Saturn's rings, in units of Saturn's own radius. Only the
     // C++ side needs it now: the shader receives the parent radius directly.
     static constexpr float ringOuterRadius = 2.3f;
 
 public:
-    SolarSystem() : sphereGeometry(1.0f, 100, 50), sun(nullptr), currentTarget(nullptr) {
+    // 50 parallels, 100 meridians. The arguments used to be the other way round,
+    // which spent 100 subdivisions on latitude (1.8 degrees apart) and only 50
+    // on longitude (7.2 degrees apart): the silhouette was visibly faceted at
+    // the equator while vertices piled up at the poles, where they all converge
+    // on the same point anyway.
+    SolarSystem() : sphereGeometry(1.0f, 50, 100), sun(nullptr), currentTarget(nullptr) {
         buildSystem();
         currentTarget = sun;
+
+        if (sun) sun->collectTransparent(transparentBodies);
     }
 
     // Holds geometries with OpenGL handles and a web of internal pointers:
@@ -81,12 +92,44 @@ public:
 
     void update(float deltaTime) {
         if (sun) sun->update(deltaTime, glm::mat4(1.0f));
-        if (skySphere) skySphere->update(deltaTime, glm::mat4(1.0f));
     }
 
-    void draw(const UniformLocations& locs) const {
-        if (sun) sun->draw(locs);
-        if (skySphere) skySphere->draw(locs);
+    // The star sphere is re-centred on the camera every frame so the stars stay
+    // effectively at infinity. Anchored at the origin it showed parallax: travel
+    // out to Neptune and the constellations visibly slid across the sky.
+    void updateSkyPosition(const glm::vec3& cameraPosition) {
+        if (skySphere) {
+            skySphere->update(0.0f, glm::translate(glm::mat4(1.0f), cameraPosition));
+        }
+    }
+
+    void draw(const UniformLocations& locs, const glm::vec3& cameraPosition) {
+        // First pass: everything opaque, so the depth buffer is complete before
+        // anything is blended into the frame.
+        if (sun) sun->drawOpaque(locs);
+        if (skySphere) skySphere->drawSelf(locs);
+
+        if (transparentBodies.empty()) return;
+
+        // Second pass: alpha-blended bodies, farthest first and without writing
+        // depth. Writing depth here would let a semi-transparent surface reject
+        // whatever lies behind it — Uranus and Neptune are drawn after Saturn,
+        // so they could vanish behind its rings.
+        const auto distanceSquared = [&cameraPosition](const CelestialBody* body) {
+            const glm::vec3 offset = body->getWorldPosition() - cameraPosition;
+            return glm::dot(offset, offset);
+        };
+
+        std::sort(transparentBodies.begin(), transparentBodies.end(),
+                  [&distanceSquared](const CelestialBody* a, const CelestialBody* b) {
+                      return distanceSquared(a) > distanceSquared(b);
+                  });
+
+        glDepthMask(GL_FALSE);
+        for (const CelestialBody* body : transparentBodies) {
+            body->drawSelf(locs);
+        }
+        glDepthMask(GL_TRUE);
     }
 
 private:

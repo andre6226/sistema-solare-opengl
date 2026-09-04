@@ -30,7 +30,13 @@ public:
         sf::Vector2u size = image.getSize();
         const GLvoid* pixelData = image.getPixelsPtr();
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
+        // GL_SRGB8_ALPHA8, not GL_RGBA: photographic textures are authored in
+        // sRGB, so sampling them raw meant doing the lighting maths on
+        // non-linear values. The hardware now decodes each texel to linear on
+        // sampling, and GL_FRAMEBUFFER_SRGB re-encodes on write. Only the three
+        // colour channels are converted; alpha stays linear, which is what the
+        // ring cutout needs.
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
 
         glGenerateMipmap(GL_TEXTURE_2D);
 

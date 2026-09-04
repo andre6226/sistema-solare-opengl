@@ -55,7 +55,10 @@ int main() {
         // The light never moves, so it is uploaded once rather than per frame.
         glUniform3fv(locs.lightPos, 1, &lightPosition[0]);
 
-        glClearColor(0.02f, 0.02f, 0.05f, 1.0f);
+        // Linear values. With GL_FRAMEBUFFER_SRGB on, the clear colour is
+        // encoded to sRGB on write too, so these are the linear equivalents of
+        // the (0.02, 0.02, 0.05) that used to be written directly.
+        glClearColor(0.0015f, 0.0015f, 0.0039f, 1.0f);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -100,6 +103,9 @@ int main() {
             const glm::mat4 projectionMatrix = camera.getProjectionMatrix(aspectRatio);
             const glm::vec3 cameraPosition = camera.getPosition(targetPosition);
 
+            // Known only once the camera has been placed, hence after update().
+            solarSystem.updateSkyPosition(cameraPosition);
+
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             shader.use();
@@ -107,7 +113,7 @@ int main() {
             glUniformMatrix4fv(locs.projection, 1, GL_FALSE, &projectionMatrix[0][0]);
             glUniform3fv(locs.cameraPos, 1, &cameraPosition[0]);
 
-            solarSystem.draw(locs);
+            solarSystem.draw(locs, cameraPosition);
 
             glUseProgram(0);
             glBindVertexArray(0);

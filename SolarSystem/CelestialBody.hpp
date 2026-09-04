@@ -59,6 +59,20 @@ private:
         return angle;
     }
 
+    // Back-face culling is on globally. Two bodies need a local exception: the
+    // star sphere is viewed from the inside, so it is its outward-facing
+    // triangles that must go, and the ring quad is a flat surface meant to be
+    // seen from above and below alike.
+    void beginFaceCulling() const {
+        if (type == BodyType::Sky)       glCullFace(GL_FRONT);
+        else if (type == BodyType::Ring) glDisable(GL_CULL_FACE);
+    }
+
+    void endFaceCulling() const {
+        if (type == BodyType::Sky)       glCullFace(GL_BACK);
+        else if (type == BodyType::Ring) glEnable(GL_CULL_FACE);
+    }
+
 public:
     CelestialBody(std::string bodyName, Texture* bodyTexture, Geometry* bodyGeometry,
                   float radius, float orbitSpeed, float spinSpeed, float tilt, float size)
@@ -109,7 +123,12 @@ public:
         }
     }
 
-    void draw(const UniformLocations& locs) const {
+    // Alpha-blended bodies are held back for a second pass, so that the opaque
+    // ones behind them are already in the depth buffer when they are drawn.
+    bool isTransparent() const { return type == BodyType::Ring; }
+
+    // Renders this node alone, without recursing into its satellites.
+    void drawSelf(const UniformLocations& locs) const {
         glUniformMatrix4fv(locs.model, 1, GL_FALSE, &modelMatrix[0][0]);
         glUniformMatrix3fv(locs.normalMatrix, 1, GL_FALSE, &normalMatrix[0][0]);
         glUniform1i(locs.bodyType, static_cast<int>(type));
@@ -127,11 +146,28 @@ public:
             texture->bind(0);
         }
 
+        beginFaceCulling();
         geometry->draw();
+        endFaceCulling();
+    }
 
-        // Recurse into the children
+    // Recurses through the subtree drawing the opaque nodes only.
+    void drawOpaque(const UniformLocations& locs) const {
+        if (!isTransparent()) {
+            drawSelf(locs);
+        }
+
         for (const CelestialBody* satellite : satellites) {
-            satellite->draw(locs);
+            satellite->drawOpaque(locs);
+        }
+    }
+
+    // Collects the alpha-blended nodes of this subtree for the second pass.
+    void collectTransparent(std::vector<CelestialBody*>& out) {
+        if (isTransparent()) out.push_back(this);
+
+        for (CelestialBody* satellite : satellites) {
+            satellite->collectTransparent(out);
         }
     }
 
