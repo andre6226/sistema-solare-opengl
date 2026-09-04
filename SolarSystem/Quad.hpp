@@ -36,6 +36,14 @@ public:
         glBindVertexArray(0);
     }
 
+    // Copia e spostamento sono gia' vietati da Geometria: qui basta restituire
+    // al driver i tre buffer allocati nel costruttore.
+    ~Quad() override {
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO);
+        glDeleteBuffers(1, &EBO);
+    }
+
     void draw() override {
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

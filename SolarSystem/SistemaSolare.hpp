@@ -1,26 +1,41 @@
 #pragma once
+#include <algorithm>
 #include <vector>
 #include <memory>
 #include "CorpoCeleste.hpp"
 #include "Sphere.hpp"
 #include "Quad.hpp"
-#include "DatiAstronomici.hpp" 
+#include "DatiAstronomici.hpp"
 
 class SistemaSolare {
 private:
+    // L'ORDINE DI DICHIARAZIONE E' SIGNIFICATIVO: i membri vengono distrutti in
+    // ordine inverso, quindi le geometrie e le texture devono stare PRIMA dei
+    // corpi che le puntano, altrimenti durante la distruzione dei CorpoCeleste
+    // i loro Texture*/Geometria* sarebbero gia' penzolanti.
     Sphere geometriaBase;
-    Quad geometriaAnelli; 
-    std::vector<std::unique_ptr<CorpoCeleste>> corpi;
-    CorpoCeleste* sole; 
-    std::unique_ptr<CorpoCeleste> stelleSfondo;
+    Quad geometriaAnelli;
+    Astr::Convertitore convertitore;
     std::vector<std::unique_ptr<Texture>> texturesCaricate;
-    Astr::Convertitore convertitore; 
+
+    std::vector<std::unique_ptr<CorpoCeleste>> corpi;
+    std::unique_ptr<CorpoCeleste> stelleSfondo;
+
+    CorpoCeleste* sole;
     CorpoCeleste* bersaglioAttuale;
+
 public:
     SistemaSolare() : geometriaBase(1.0f, 100, 50), sole(nullptr), bersaglioAttuale(nullptr) {
         costruisciSistema();
-        bersaglioAttuale = sole; 
+        bersaglioAttuale = sole;
     }
+
+    // Contiene geometrie con handle OpenGL e una rete di puntatori interni:
+    // copiarlo o spostarlo non avrebbe senso e romperebbe l'albero.
+    SistemaSolare(const SistemaSolare&)            = delete;
+    SistemaSolare& operator=(const SistemaSolare&) = delete;
+    SistemaSolare(SistemaSolare&&)                 = delete;
+    SistemaSolare& operator=(SistemaSolare&&)      = delete;
 
     void selezionaPadre() {
         if (bersaglioAttuale && bersaglioAttuale->getPadre() != nullptr) {
@@ -29,38 +44,18 @@ public:
     }
 
     void selezionaPrimoFiglio() {
-        if (bersaglioAttuale && !bersaglioAttuale->getLune().empty()) {
-            bersaglioAttuale = bersaglioAttuale->getLune().front();
-        }
-    }
+        if (!bersaglioAttuale) return;
 
-    void selezionaProssimoFratello() {
-        if (!bersaglioAttuale || !bersaglioAttuale->getPadre()) return; 
-        
-        const auto& fratelli = bersaglioAttuale->getPadre()->getLune();
-        for (size_t i = 0; i < fratelli.size(); ++i) {
-            if (fratelli[i] == bersaglioAttuale) {
-                if (i + 1 < fratelli.size()) {
-                    if (fratelli[i + 1]->getNome() == "AnelliSaturno") break; 
-                    
-                    bersaglioAttuale = fratelli[i + 1];
-                }
-                break;
+        for (CorpoCeleste* figlio : bersaglioAttuale->getLune()) {
+            if (figlio->isNavigabile()) {
+                bersaglioAttuale = figlio;
+                return;
             }
         }
     }
 
-    void selezionaFratelloPrecedente() {
-        if (!bersaglioAttuale || !bersaglioAttuale->getPadre()) return; 
-        
-        const auto& fratelli = bersaglioAttuale->getPadre()->getLune();
-        for (size_t i = 0; i < fratelli.size(); ++i) {
-            if (fratelli[i] == bersaglioAttuale) {
-                if (i > 0) bersaglioAttuale = fratelli[i - 1];
-                break;
-            }
-        }
-    }
+    void selezionaProssimoFratello()   { spostaTraFratelli(+1); }
+    void selezionaFratelloPrecedente() { spostaTraFratelli(-1); }
 
     glm::vec3 getPosizioneBersaglio() const {
         if (bersaglioAttuale) return bersaglioAttuale->getPosizioneGlobale();
@@ -72,8 +67,15 @@ public:
         return "Sole";
     }
 
+    // Raggio ingombro del bersaglio: la telecamera lo usa per calcolare quanto
+    // puo' avvicinarsi senza finire dentro il corpo.
+    float getRaggioBersaglio() const {
+        if (bersaglioAttuale) return bersaglioAttuale->getRaggioVisivo();
+        return 1.0f;
+    }
+
    CorpoCeleste* creaCorpo(const Astr::CorpoReale& datiReali, CorpoCeleste* padre) {
-        
+
         float raggioOrbita = convertitore.getDistanza(datiReali);
         float scala        = convertitore.getDimensione(datiReali);
         float velOrbita    = convertitore.getVelocitaOrbitale(datiReali);
@@ -81,14 +83,14 @@ public:
         float inclinazione = convertitore.getInclinazione(datiReali);
 
         std::string percorsoTexture = std::string("resources/") + datiReali.nome + ".jpg";
-        
+
         auto nuovaTexture = std::make_unique<Texture>(percorsoTexture);
         Texture* ptrTexture = nuovaTexture.get();
         texturesCaricate.push_back(std::move(nuovaTexture));
 
-        auto nuovoCorpo = std::make_unique<CorpoCeleste>(datiReali.nome, ptrTexture, &geometriaBase, raggioOrbita, velOrbita, velRotazione, inclinazione, scala);        
-        CorpoCeleste* ptr = nuovoCorpo.get(); 
-        
+        auto nuovoCorpo = std::make_unique<CorpoCeleste>(datiReali.nome, ptrTexture, &geometriaBase, raggioOrbita, velOrbita, velRotazione, inclinazione, scala);
+        CorpoCeleste* ptr = nuovoCorpo.get();
+
         if (padre != nullptr) {
             padre->aggiungiSatellite(ptr);
         } else if (sole == nullptr) {
@@ -105,18 +107,18 @@ public:
 
 
 
-        std::string percorsoStelle = "resources/Stelle.jpg"; 
+        std::string percorsoStelle = "resources/Stelle.jpg";
         auto texStelle = std::make_unique<Texture>(percorsoStelle);
         Texture* ptrTexStelle = texStelle.get();
         texturesCaricate.push_back(std::move(texStelle));
-        
+
         stelleSfondo = std::make_unique<CorpoCeleste>("Stelle", ptrTexStelle, &geometriaBase, 0.0f, 0.0f, 0.0f, 0.0f, 2500.0f);
 
 
         // --- PIANETI INTERNI E LUNE ---
         creaCorpo(Astr::Mercurio, sole);
         creaCorpo(Astr::Venere, sole);
-        
+
         CorpoCeleste* terra = creaCorpo(Astr::Terra, sole);
         terra->setInclinaFigli(false); // la Luna segue l'eclittica e non la terra
         creaCorpo(Astr::Luna, terra);
@@ -138,27 +140,25 @@ public:
         creaCorpo(Astr::Callisto, giove);
 
 
-
-
-
-
-
         // --- SATELLITI DI SATURNO ---
 
         creaCorpo(Astr::Titano, saturno);
         creaCorpo(Astr::Encelado, saturno);
 
 
-
-        std::string percorsoAnelli = "resources/AnelliSaturno.png"; 
+        std::string percorsoAnelli = "resources/AnelliSaturno.png";
         auto texAnelli = std::make_unique<Texture>(percorsoAnelli);
         Texture* ptrTexAnelli = texAnelli.get();
         texturesCaricate.push_back(std::move(texAnelli));
 
-        auto anelli = std::make_unique<CorpoCeleste>("AnelliSaturno", ptrTexAnelli, &geometriaAnelli, 0.0f, 0.0f, 0.0f, 0.0f, 2.3f * convertitore.getDimensione(Astr::Saturno));        saturno->aggiungiSatellite(anelli.get());
+        auto anelli = std::make_unique<CorpoCeleste>("AnelliSaturno", ptrTexAnelli, &geometriaAnelli,
+                                                     0.0f, 0.0f, 0.0f, 0.0f,
+                                                     2.3f * convertitore.getDimensione(Astr::Saturno));
+        // Gli anelli sono un figlio di Saturno per ereditarne l'inclinazione,
+        // ma non sono un bersaglio selezionabile con le frecce.
+        anelli->setNavigabile(false);
+        saturno->aggiungiSatellite(anelli.get());
         corpi.push_back(std::move(anelli));
-
-
 
 
         // --- SATELLITI ESTERNI ---
@@ -171,16 +171,35 @@ public:
         if (stelleSfondo) stelleSfondo->aggiorna(deltaTempo, glm::mat4(1.0f));
     }
 
-    void disegna(Shader& shader, const UniformLocations& locs) {
+    void disegna(const UniformLocations& locs) const {
         if (sole) {
-            glm::mat4 centroDellUniverso = glm::mat4(1.0f);
-            sole->disegna(shader, locs, centroDellUniverso);
+            sole->disegna(locs);
         }
 
         if (stelleSfondo) {
-            stelleSfondo->disegna(shader, locs, glm::mat4(1.0f)); 
+            stelleSfondo->disegna(locs);
         }
+    }
 
+private:
+    // Scorre i fratelli nella direzione data saltando quelli non navigabili.
+    // La versione precedente usava un break sul nome "AnelliSaturno": qualsiasi
+    // luna aggiunta dopo gli anelli sarebbe diventata irraggiungibile.
+    void spostaTraFratelli(int direzione) {
+        if (!bersaglioAttuale || !bersaglioAttuale->getPadre()) return;
 
+        const auto& fratelli = bersaglioAttuale->getPadre()->getLune();
+        const auto posizione = std::find(fratelli.begin(), fratelli.end(), bersaglioAttuale);
+        if (posizione == fratelli.end()) return;
+
+        const int indice = static_cast<int>(std::distance(fratelli.begin(), posizione));
+        const int totale = static_cast<int>(fratelli.size());
+
+        for (int i = indice + direzione; i >= 0 && i < totale; i += direzione) {
+            if (fratelli[i]->isNavigabile()) {
+                bersaglioAttuale = fratelli[i];
+                return;
+            }
+        }
     }
 };

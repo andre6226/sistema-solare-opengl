@@ -57,7 +57,7 @@ public:
                 indices.push_back(p2 + 1);
             }
         }
-        indexCount = indices.size();
+        indexCount = static_cast<int>(indices.size());
 
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
@@ -86,6 +86,14 @@ public:
         glEnableVertexAttribArray(2);
 
         glBindVertexArray(0); // Stacco il VAO
+    }
+
+    // Copia e spostamento sono gia' vietati da Geometria: qui basta restituire
+    // al driver i tre buffer allocati nel costruttore.
+    ~Sphere() override {
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO);
+        glDeleteBuffers(1, &EBO);
     }
 
     void draw() override {
