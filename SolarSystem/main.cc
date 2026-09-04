@@ -12,6 +12,7 @@
 #include "Camera.hpp"
 #include "SolarSystem.hpp"
 #include "InputHandler.hpp"
+#include "Hud.hpp"
 
 #include <SFML/System/Clock.hpp>
 #include <SFML/System/Sleep.hpp>
@@ -36,6 +37,7 @@ int main() {
         Shader shader("SolarSystem/base.vert", "SolarSystem/base.frag");
         SolarSystem solarSystem;
         Camera camera(30.0f, 0.0f, 20.0f);
+        Hud hud;
 
         UniformLocations locs;
         locs.view         = shader.uniformLocation("view");
@@ -67,7 +69,7 @@ int main() {
         sf::Clock clock;
 
         std::string previousTarget = "";
-        float previousTimeScale = -1.0f;
+        float smoothedFps = 60.0f;
 
         while (running) {
             InputHandler::handleEvents(window, camera, solarSystem, running, input);
@@ -79,14 +81,15 @@ int main() {
                 camera.focusOn(solarSystem.getTargetRadius());
             }
 
-            if (currentTarget != previousTarget || input.timeScale != previousTimeScale) {
-                std::cout << "\n[SOLAR SYSTEM] Target: " << currentTarget
-                          << " | Speed: " << input.timeScale << "x" << std::endl;
-                previousTarget = currentTarget;
-                previousTimeScale = input.timeScale;
-            }
+            previousTarget = currentTarget;
 
             const float realDelta = std::min(clock.restart().asSeconds(), maxFrameDelta);
+
+            // Exponential moving average, otherwise the readout is unreadable.
+            if (realDelta > 0.0f) {
+                smoothedFps += (1.0f / realDelta - smoothedFps) * 0.1f;
+            }
+
             solarSystem.update(realDelta * input.timeScale);
 
             // A minimised window can report a size of zero: the aspect ratio
@@ -114,6 +117,16 @@ int main() {
             glUniform3fv(locs.cameraPos, 1, &cameraPosition[0]);
 
             solarSystem.draw(locs, cameraPosition);
+
+            HudFrame hudFrame;
+            hudFrame.targetName     = currentTarget;
+            hudFrame.targetPath     = solarSystem.getTargetPath();
+            hudFrame.data           = solarSystem.getTargetData();
+            hudFrame.satelliteCount = solarSystem.getTargetSatelliteCount();
+            hudFrame.timeScale      = input.timeScale;
+            hudFrame.cameraDistance = camera.getDistance();
+            hudFrame.fps            = smoothedFps;
+            hud.draw(hudFrame, size.x, size.y);
 
             glUseProgram(0);
             glBindVertexArray(0);

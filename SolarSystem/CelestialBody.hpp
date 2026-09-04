@@ -7,6 +7,7 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include "AstronomicalData.hpp"
 #include "Geometry.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
@@ -37,6 +38,10 @@ private:
     BodyType type = BodyType::Planet;
     bool tiltChildren = true;
     bool navigable    = true;
+
+    // The real measurements this node was built from, kept so the HUD can show
+    // them. Null for the rings and the star sphere, which are not real bodies.
+    const Astro::BodyData* data = nullptr;
 
     // --- Derived state ---
     // Computed once per frame by update() and only read by draw(). These used to
@@ -172,6 +177,8 @@ public:
     }
 
     void setType(BodyType bodyType) { type = bodyType; }
+    void setData(const Astro::BodyData* bodyData) { data = bodyData; }
+    const Astro::BodyData* getData() const { return data; }
     void setTiltChildren(bool tilt) { tiltChildren = tilt; }
 
     // Non-navigable bodies (the rings) stay in the render tree but are skipped

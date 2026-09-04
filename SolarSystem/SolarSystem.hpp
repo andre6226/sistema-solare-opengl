@@ -83,6 +83,38 @@ public:
         return "Sun";
     }
 
+    // Real measurements behind the current target, for the HUD. Null only if
+    // there is no target at all.
+    const Astro::BodyData* getTargetData() const {
+        return currentTarget ? currentTarget->getData() : nullptr;
+    }
+
+    // How many selectable satellites the target has (the rings do not count).
+    int getTargetSatelliteCount() const {
+        if (!currentTarget) return 0;
+
+        int count = 0;
+        for (const CelestialBody* child : currentTarget->getSatellites()) {
+            if (child->isNavigable()) ++count;
+        }
+        return count;
+    }
+
+    // Breadcrumb from the Sun down to the current target, e.g. "Sun > Saturn".
+    std::string getTargetPath() const {
+        std::vector<std::string> chain;
+        for (const CelestialBody* node = currentTarget; node != nullptr; node = node->getParent()) {
+            chain.push_back(node->getName());
+        }
+
+        std::string path;
+        for (auto it = chain.rbegin(); it != chain.rend(); ++it) {
+            if (!path.empty()) path += "  >  ";
+            path += *it;
+        }
+        return path;
+    }
+
     // Bounding radius of the target: the camera uses it to work out how close it
     // may get without ending up inside the body.
     float getTargetRadius() const {
@@ -160,6 +192,7 @@ private:
             sun = raw;
         }
 
+        raw->setData(&data);
         bodies.push_back(std::move(body));
         return raw;
     }

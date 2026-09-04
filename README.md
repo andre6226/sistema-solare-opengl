@@ -34,7 +34,8 @@ launched either from the project root or from `build/`.
   bound adapts to the size of the body in view.
 * **Navigation:** `UP` selects the parent (towards the Sun), `DOWN` the first
   child (towards a moon), `LEFT`/`RIGHT` cycle through the siblings — for
-  example among Jupiter's moons. The current target is printed to the terminal.
+  example among Jupiter's moons. The on-screen panel shows where you are in the
+  hierarchy and the real measurements for the body in view.
 * **Time:** `SHIFT` speeds the orbits up, `CTRL` slows them down, `SPACE` resets
   to normal speed. The multiplier is clamped to the range 0.001x–1000x.
 
@@ -54,3 +55,18 @@ launched either from the project root or from `build/`.
 | `Camera.hpp` | Orbital camera with adaptive zoom and near plane |
 | `InputHandler.hpp` | Event translation into camera and simulation commands |
 | `base.vert` / `base.frag` | The single shader program used for every body |
+| `TextRenderer.hpp` | Core-profile 2D text and quad overlay renderer |
+| `Hud.hpp` | Overlay layout: target panel, status readout, control hints |
+| `hud.vert` / `hud.frag` | Shader program for the overlay |
+
+## A note on the HUD
+
+The overlay is drawn with its own core-profile shader, not with SFML's 2D
+renderer. `sf::RenderWindow::draw()` depends on state that a core profile does
+not provide, and `pushGLStates()`/`popGLStates()` does not round-trip everything
+it touches — the depth test and the bound vertex array among them. Linux and
+Windows drivers are lenient enough to mask the problem; macOS exposes no
+compatibility profile above OpenGL 3.2, so there the depth buffer really does
+come back corrupted. SFML is used only to rasterise glyphs into an atlas on the
+CPU; every draw call is ours, and `TextRenderer::begin()`/`end()` saves and
+restores the exact state the overlay disturbs.

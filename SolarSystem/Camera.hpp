@@ -51,6 +51,8 @@ public:
         distance  = std::clamp(distance, minDistance, maxDistance);
     }
 
+    float getDistance() const { return distance; }
+
     glm::mat4 getViewMatrix(glm::vec3 target) const {
         return glm::lookAt(getPosition(target), target, glm::vec3(0.0f, 1.0f, 0.0f));
     }
