@@ -83,9 +83,27 @@ outward direction and the whole mesh is flipped if the majority disagree.
 Vertex normals are area-weighted, and the vertices straddling the texture's
 longitude wrap are duplicated so the seam does not smear.
 
-Note that the texture's longitude origin is assumed to line up with the model's;
-the geometry is measured data, but the rotational alignment of the colour map
-against it is not guaranteed.
+### Lining the texture up with the geometry
+
+A shape model carries a real longitude system and its colour map carries its
+own, and the two rarely agree. On a plain sphere the mismatch is invisible, since
+a sphere looks identical rotated; once the geometry has features, the map has to
+sit on them, or craters land on ridges.
+
+The Thomas models index **west** longitude, while the body maps used here are
+laid out east-longitude with 180 degrees at the left edge, the usual convention
+for planetary texture maps. That is a half-map rotation, applied through
+`ShapeModel`'s `textureLongitudeOffsetDegrees` parameter rather than hard-coded,
+because every shape/texture pairing has its own answer.
+
+The value was measured, not guessed. Fitting a triaxial ellipsoid to the shape
+data and subtracting it leaves a topography map; cross-correlating that against
+the texture over every longitude shift peaks at 176 degrees for Phobos, at 5.1
+times the background correlation, and at 200 degrees for Deimos, at 2.5 times on
+a coarser 5 degree grid. Both bracket the nominal 180. As an independent check,
+the ellipsoid fit recovers semi-axes of 13.01 / 9.13 / 11.45 km for Phobos
+against the published 13.5 / 9.1 / 11.1, and the deepest basin in the residual
+sits at 49 W, 1 N, which is Stickney.
 
 If the files are missing the program still runs, falling back to a sphere and
 saying so on stderr.

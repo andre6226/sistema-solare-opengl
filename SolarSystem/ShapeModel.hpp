@@ -34,7 +34,19 @@
 // belt without changes.
 class ShapeModel : public Geometry {
 public:
-    explicit ShapeModel(const std::string& path) {
+    // textureLongitudeOffsetDegrees rotates the texture around the polar axis.
+    // It is needed because a shape model carries a real longitude system while
+    // its colour map carries its own, and the two rarely agree. On a plain
+    // sphere the mismatch is invisible - a sphere looks identical rotated - but
+    // once the geometry has features the map has to line up with them.
+    //
+    // The Thomas models index west longitude, while the body maps here are laid
+    // out east-longitude with 180 deg at the left edge, which is the usual
+    // convention for planetary texture maps. Cross-correlating the model's
+    // topography against the texture puts the offset at 176 deg for Phobos
+    // (5.1x the background correlation) and 200 deg for Deimos (2.5x, on a
+    // coarser 5 deg grid), both consistent with the nominal 180.
+    explicit ShapeModel(const std::string& path, float textureLongitudeOffsetDegrees = 180.0f) {
         std::vector<glm::vec3> positions;
         std::vector<glm::uvec3> faces;
 
@@ -49,7 +61,7 @@ public:
         ensureOutwardWinding(positions, faces);
 
         std::vector<glm::vec3> normals = computeNormals(positions, faces);
-        std::vector<glm::vec2> uvs = computeSphericalUVs(positions);
+        std::vector<glm::vec2> uvs = computeSphericalUVs(positions, textureLongitudeOffsetDegrees);
         splitSeam(positions, normals, uvs, faces);
 
         upload(positions, normals, uvs, faces);
@@ -329,8 +341,10 @@ private:
 
     // Equirectangular mapping matching the convention used by Sphere, so the
     // existing body textures line up the same way on either geometry.
-    static std::vector<glm::vec2> computeSphericalUVs(const std::vector<glm::vec3>& positions) {
+    static std::vector<glm::vec2> computeSphericalUVs(const std::vector<glm::vec3>& positions,
+                                                      float longitudeOffsetDegrees) {
         std::vector<glm::vec2> uvs(positions.size());
+        const float offset = longitudeOffsetDegrees / 360.0f;
 
         for (std::size_t i = 0; i < positions.size(); ++i) {
             const glm::vec3 d = glm::normalize(positions[i]);
@@ -338,7 +352,10 @@ private:
             float theta = std::atan2(d.z, d.x);
             if (theta < 0.0f) theta += glm::two_pi<float>();
 
-            uvs[i] = glm::vec2(1.0f - theta / glm::two_pi<float>(),
+            float u = 1.0f - theta / glm::two_pi<float>() + offset;
+            u -= std::floor(u); // back into [0, 1) so the seam split still works
+
+            uvs[i] = glm::vec2(u,
                                1.0f - std::acos(glm::clamp(d.y, -1.0f, 1.0f)) / glm::pi<float>());
         }
         return uvs;

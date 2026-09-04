@@ -179,9 +179,9 @@ private:
 
     // Loads a measured shape model, falling back to the shared sphere when the
     // file is absent so the program still runs without the optional data.
-    Geometry* loadShape(const std::string& path) {
+    Geometry* loadShape(const std::string& path, float textureLongitudeOffsetDegrees = 180.0f) {
         try {
-            auto model = std::make_unique<ShapeModel>(path);
+            auto model = std::make_unique<ShapeModel>(path, textureLongitudeOffsetDegrees);
             std::cout << "[shape] " << path << ": " << model->getVertexCount()
                       << " vertices, " << model->getFaceCount() << " facets" << std::endl;
             Geometry* raw = model.get();
