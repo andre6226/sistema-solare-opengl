@@ -2,10 +2,12 @@
 #include <algorithm>
 #include <vector>
 #include <memory>
+#include <iostream>
 #include <string>
 #include "CelestialBody.hpp"
 #include "Sphere.hpp"
 #include "Quad.hpp"
+#include "ShapeModel.hpp"
 #include "AstronomicalData.hpp"
 
 class SolarSystem {
@@ -16,6 +18,9 @@ private:
     // already be dangling while the bodies are being destroyed.
     Sphere sphereGeometry;
     Quad ringGeometry;
+    // One mesh per irregular body: unlike the shared sphere, each measured shape
+    // is unique. Declared before `bodies` so it outlives the nodes pointing at it.
+    std::vector<std::unique_ptr<ShapeModel>> shapeModels;
     Astro::ScaleConverter converter;
     std::vector<std::unique_ptr<Texture>> textures;
 
@@ -172,7 +177,24 @@ private:
         return raw;
     }
 
-    CelestialBody* createBody(const Astro::BodyData& data, CelestialBody* parent) {
+    // Loads a measured shape model, falling back to the shared sphere when the
+    // file is absent so the program still runs without the optional data.
+    Geometry* loadShape(const std::string& path) {
+        try {
+            auto model = std::make_unique<ShapeModel>(path);
+            std::cout << "[shape] " << path << ": " << model->getVertexCount()
+                      << " vertices, " << model->getFaceCount() << " facets" << std::endl;
+            Geometry* raw = model.get();
+            shapeModels.push_back(std::move(model));
+            return raw;
+        } catch (const std::exception& e) {
+            std::cerr << "[shape] " << e.what() << " - falling back to a sphere" << std::endl;
+            return &sphereGeometry;
+        }
+    }
+
+    CelestialBody* createBody(const Astro::BodyData& data, CelestialBody* parent,
+                              Geometry* geometry = nullptr) {
         const float orbitRadius   = converter.getOrbitRadius(data);
         const float scale         = converter.getScale(data);
         const float orbitalSpeed  = converter.getOrbitalSpeed(data);
@@ -181,7 +203,8 @@ private:
 
         Texture* texture = loadTexture(std::string("resources/") + data.name + ".jpg");
 
-        auto body = std::make_unique<CelestialBody>(data.name, texture, &sphereGeometry,
+        auto body = std::make_unique<CelestialBody>(data.name, texture,
+                                                    geometry ? geometry : &sphereGeometry,
                                                     orbitRadius, orbitalSpeed, rotationSpeed,
                                                     axialTilt, scale);
         CelestialBody* raw = body.get();
@@ -218,8 +241,10 @@ private:
         createBody(Astro::Moon, earth);
 
         CelestialBody* mars = createBody(Astro::Mars, sun);
-        createBody(Astro::Deimos, mars);
-        createBody(Astro::Phobos, mars);
+        // The two Martian moons are far from spherical, so they use measured
+        // plate models rather than the shared UV sphere.
+        createBody(Astro::Deimos, mars, loadShape("resources/models/Deimos.tab"));
+        createBody(Astro::Phobos, mars, loadShape("resources/models/Phobos.tab"));
 
         // --- GAS GIANTS ---
         CelestialBody* jupiter = createBody(Astro::Jupiter, sun);

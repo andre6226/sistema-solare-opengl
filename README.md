@@ -49,6 +49,7 @@ launched either from the project root or from `build/`.
 | `Texture.hpp` | Texture loading and OpenGL handle ownership |
 | `Geometry.hpp` | Base interface for primitives owning GPU buffers |
 | `Sphere.hpp` / `Quad.hpp` | UV sphere and quad meshes |
+| `ShapeModel.hpp` | Loader for measured shape models (OBJ, PDS plate, PDS lat/lon grid) |
 | `CelestialBody.hpp` | A single scene-graph node: transform, shading type, children |
 | `SolarSystem.hpp` | Builds the hierarchy, owns all resources, handles target selection |
 | `AstronomicalData.hpp` | Real measurements and their conversion to render units |
@@ -58,6 +59,36 @@ launched either from the project root or from `build/`.
 | `TextRenderer.hpp` | Core-profile 2D text and quad overlay renderer |
 | `Hud.hpp` | Overlay layout: target panel, status readout, control hints |
 | `hud.vert` / `hud.frag` | Shader program for the overlay |
+
+## Shape models
+
+Phobos and Deimos are not spheres, so they are not drawn as spheres. Their
+geometry comes from the shape models measured by P. C. Thomas from Viking
+imagery, archived at the PDS Small Bodies Node:
+
+    resources/models/Phobos.tab    91 x 181 grid, 2 degree spacing
+    resources/models/Deimos.tab    37 x  73 grid, 5 degree spacing
+
+Each row is `latitude longitude radius`, the radius being in kilometres. The
+loader also reads Wavefront OBJ and the PDS vertex/facet plate format, and tells
+the two `.tab` layouts apart by how many numbers the first row carries, so no
+caller has to declare the format. The same archive publishes Gaspra, Ida,
+Mathilde and Vesta in exactly this layout, which is the intended route for
+adding asteroids.
+
+A model is centred on its bounding box and normalised so its farthest vertex
+sits at radius 1, which keeps the existing render scale and the camera's minimum
+zoom correct. Winding is not trusted: facet normals are compared against their
+outward direction and the whole mesh is flipped if the majority disagree.
+Vertex normals are area-weighted, and the vertices straddling the texture's
+longitude wrap are duplicated so the seam does not smear.
+
+Note that the texture's longitude origin is assumed to line up with the model's;
+the geometry is measured data, but the rotational alignment of the colour map
+against it is not guaranteed.
+
+If the files are missing the program still runs, falling back to a sphere and
+saying so on stderr.
 
 ## A note on the HUD
 
