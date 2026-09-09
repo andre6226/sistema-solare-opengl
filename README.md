@@ -1,9 +1,6 @@
 # Solar System — Quick Guide
 
-A real-time solar system renderer in modern OpenGL (3.3 core), built with SFML
-for windowing and GLM for the maths. Bodies are arranged in a scene graph, so
-moons inherit their planet's frame of reference, and orbital and physical data
-come from real measurements compressed to a viewable scale.
+A real-time solar system renderer in modern OpenGL (3.3 core), built with SFML for windowing and GLM for the maths. Bodies are arranged in a scene graph, so moons inherit their planet's frame of reference, and orbital and physical data come from real measurements compressed to a viewable scale. The project was developed as part of the final examination project for the Fundamentals of Computer Graphics course in the Computer Science degree program at the University of Genoa.
 
 ## Build
 
