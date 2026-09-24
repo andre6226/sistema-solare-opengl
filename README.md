@@ -44,3 +44,9 @@ imagery, archived at the PDS Small Bodies Node:
 
     resources/models/Phobos.tab    91 x 181 grid, 2 degree spacing
     resources/models/Deimos.tab    37 x  73 grid, 5 degree spacing
+
+## License
+
+The source code is released under the MIT License: see [LICENSE](LICENSE).
+Third-party files (the `glad/` loader, textures, font and shape models in
+`resources/`) remain under the terms of their respective authors.
