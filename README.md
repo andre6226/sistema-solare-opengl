@@ -10,7 +10,7 @@ A real-time solar system renderer in modern OpenGL (3.3 core), built with SFML f
 
 ![Moon and Earth](pictures/MoonAndEarth.png)
 
-*Moon and Earth*
+*Moon, Earth and Sun*
 
 ![Phobos and Mars](pictures/PhobosAndMars.png)
 
