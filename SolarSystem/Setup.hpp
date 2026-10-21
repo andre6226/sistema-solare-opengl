@@ -10,8 +10,8 @@ class Setup {
 public:
     sf::Window window;
 
-    Setup()
-        : window(sf::VideoMode({800, 600}), "Solar System",
+    explicit Setup(sf::Vector2u size = {800, 600})
+        : window(sf::VideoMode(size), "Solar System",
                  sf::Style::Default, sf::State::Windowed, contextSettings()) {
 
         window.setVerticalSyncEnabled(true);

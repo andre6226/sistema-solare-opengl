@@ -32,21 +32,29 @@ and by several minutes by 2200. Nobody can do better until it happens.
 
 ## Gallery
 
-![Earth](pictures/Earth.png)
+![Earth at dusk](pictures/Earth.png)
 
-*Earth*
-
-![Moon and Earth](pictures/MoonAndEarth.png)
-
-*Moon, Earth and Sun*
-
-![Phobos and Mars](pictures/PhobosAndMars.png)
-
-*Phobos and Mars*
+*Earth on 21 October 2026, 18:30 UTC: night over Europe and Africa, city lights, the atmosphere's blue limb*
 
 ![Saturn](pictures/Saturn.png)
 
-*Saturn*
+*Saturn in June 2017, rings open 27° to the Sun, the globe's shadow across them*
+
+![Total lunar eclipse](pictures/LunarEclipse.png)
+
+*The total lunar eclipse of 7 September 2025, the Moon red in Earth's umbra*
+
+![Jupiter and Io's shadow](pictures/JupiterIo.png)
+
+*Io's shadow crossing Jupiter, 5 February 2026*
+
+![Halley](pictures/Halley.png)
+
+*Comet Halley the day of its 1986 perihelion, coma and tail*
+
+![Phobos and Mars](pictures/PhobosAndMars.png)
+
+*Phobos, 120 km away, in front of Mars*
 
 ## Build and run
 
@@ -78,7 +86,9 @@ and the shaders next to the binary on every build, changed files only.
 * **Command line** (run from `build/`): `--date 2026-08-12T17:46:00` (UTC),
   `--focus Moon` (camera on the Sun's side of the body), `--azimuth`/`--elevation`
   (degrees, turning the camera from there), `--distance` (km), and
-  `--screenshot out.png`, which freezes time, saves the frame and exits:
+  `--screenshot out.png`, which freezes time, saves the frame and exits;
+  `--size 2560x1372` sets the window and so the picture's size, `--orbits off`
+  hides the orbit lines:
 
   ```
   cd build && ./SolarSystem.bin --date 2025-09-07T18:11:00 --focus Moon --screenshot moon.png

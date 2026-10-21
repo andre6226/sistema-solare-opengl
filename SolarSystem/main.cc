@@ -15,6 +15,7 @@
 #include "Hud.hpp"
 #include "Travel.hpp"
 
+#include <cstdio>
 #include <SFML/System/Clock.hpp>
 #include <SFML/System/Sleep.hpp>
 #include <SFML/Graphics/Image.hpp>
@@ -40,7 +41,8 @@ static constexpr int screenshotFrames = 3;
 
 static int usage(const char* argv0) {
     std::cerr << "usage: " << argv0 << " [--date YYYY-MM-DDTHH:MM:SS] [--focus BODY] [--distance KM]\n"
-              << "       [--azimuth DEG] [--elevation DEG] [--screenshot OUT.png]\n"
+              << "       [--azimuth DEG] [--elevation DEG] [--size WxH] [--orbits on|off]\n"
+              << "       [--screenshot OUT.png]\n"
               << "With --focus, the camera looks from the Sun's side of the body; azimuth and\n"
               << "elevation turn it from there. --screenshot freezes time, saves, and exits.\n";
     return 2;
@@ -49,6 +51,8 @@ static int usage(const char* argv0) {
 int main(int argc, char** argv) {
     std::string dateArg, focusArg, screenshotPath;
     float distanceKm = 0.0f, azimuthOffset = 0.0f, elevationOffset = 0.0f;
+    sf::Vector2u windowSize{800, 600};
+    bool orbitLines = true;
     for (int i = 1; i < argc; ++i) {
         const std::string opt = argv[i];
         if (i + 1 >= argc) return usage(argv[0]);
@@ -60,6 +64,12 @@ int main(int argc, char** argv) {
             else if (opt == "--distance")   distanceKm = std::stof(value);
             else if (opt == "--azimuth")    azimuthOffset = std::stof(value);
             else if (opt == "--elevation")  elevationOffset = std::stof(value);
+            else if (opt == "--orbits" && (std::string(value) == "on" || std::string(value) == "off")) orbitLines = std::string(value) == "on";
+            else if (opt == "--size") {
+                unsigned w = 0, h = 0;
+                if (std::sscanf(value, "%ux%u", &w, &h) != 2 || w < 64 || h < 64 || w > 8192 || h > 8192) return usage(argv[0]);
+                windowSize = {w, h};
+            }
             else return usage(argv[0]);
         } catch (const std::exception&) {
             return usage(argv[0]);
@@ -67,11 +77,12 @@ int main(int argc, char** argv) {
     }
 
     try {
-        Setup setup;
+        Setup setup(windowSize);
         sf::Window& window = setup.window;
 
         Shader shader("SolarSystem/base.vert", "SolarSystem/base.frag");
         SolarSystem solarSystem;
+        if (!orbitLines) solarSystem.toggleOrbitLines();
         std::cout << "[time] Initialized UTC: " << Astro::formatUtcDateTime(solarSystem.getSimUnixSeconds())
                   << " (JD " << std::fixed << std::setprecision(2) << solarSystem.getJulianDate()
                   << ", T = " << std::setprecision(6) << solarSystem.getJulianCenturies() << " cy)" << std::endl;
