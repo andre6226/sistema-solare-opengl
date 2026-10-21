@@ -212,8 +212,11 @@ ship, so each moon is stored in two layers:
    too. Through 2200 the moons follow the mean orbit with the last correction
    held fixed, and are only as good as the mean orbit (0.004°–0.4°).
 
-Orbit lines are drawn from the mean orbit; the body itself gets mean orbit +
-correction.
+The body gets mean orbit + correction, and its orbit line is the osculating
+ellipse of that position. The mean ellipse missed Hyperion by up to a quarter of
+its orbit and Nereid by 3%; the other moons by under 0.6%. The ellipse uses the
+fit's n²a³ for GM, which keeps the inner moons' lines at their mean size although
+Saturn's and Jupiter's flattening make them orbit a little faster.
 
 Three moons stretch the scheme. Hyperion tumbles chaotically and is locked in a
 4:3 resonance with Titan: its mean orbit misses JPL by up to 17°, so its table

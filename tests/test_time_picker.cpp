@@ -217,6 +217,20 @@ int main() {
             assert(b.a_km > 0.0);
             assert(glm::length(Astro::evaluateOrbitVertex(b, b.E_rad)) >= 0.999 * b.a_km * (1.0 - b.e));   // never inside periapsis
         }
+        // The drawn line, the osculating ellipse of the full position (SolarSystem::applyEphemeris),
+        // passes through the moon and stays a closed ellipse, Hyperion included.
+        for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
+            const MoonTable table(std::string("resources/moons/") + s.name + ".bin");
+            const auto at = [&](double jd) {
+                const Astro::KeplerianBasis b = Astro::satelliteBasis(s, jd - Astro::J2000_EPOCH_JD);
+                return Astro::evaluateOrbitVertex(b, b.E_rad) + table.offset(jd);
+            };
+            const double jd = 2461335.5, dt = 1.0e-3, n = s.meanMotion / Astro::SECONDS_PER_DAY, a = std::abs(s.a);
+            const glm::dvec3 v = (at(jd + dt) - at(jd - dt)) / (2.0 * dt * Astro::SECONDS_PER_DAY);
+            const Astro::KeplerianBasis b = Astro::osculatingBasis(at(jd), v, n * n * a * a * a);
+            assert(glm::length(Astro::evaluateOrbitVertex(b, b.E_rad) - at(jd)) < 1.0);
+            assert(b.a_km > 0.5 * a && b.a_km < 2.0 * a && b.e < 0.9);
+        }
 
         // Pluto's centre: DE440's Pluto-Charon barycentre minus Charon's pull (as in
         // SolarSystem::plutoCentreOffset), against JPL Horizons body 999: within 1 km.

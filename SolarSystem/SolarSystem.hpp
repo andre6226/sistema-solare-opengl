@@ -504,11 +504,18 @@ private:
             } else if (link.moon != nullptr) {
                 // shortcut: DE440 places each giant at its system barycentre, under 300 km
                 // from its centre (Pluto, 2,100 km off, is moved to its centre below).
-                Astro::KeplerianBasis b = Astro::satelliteBasis(*link.moon, jdTdb - Astro::J2000_EPOCH_JD);
-                b.P_world = toWorld * b.P_world;
-                b.Q_world = toWorld * b.Q_world;
-                // The line keeps the mean ellipse; the body gets the full JPL position.
-                link.body->setEphemerisOffset(Astro::evaluateOrbitVertex(b, b.E_rad) + toWorld * link.moonTable->offset(jdTdb), b);
+                const auto at = [&](double jd) {
+                    const Astro::KeplerianBasis b = Astro::satelliteBasis(*link.moon, jd - Astro::J2000_EPOCH_JD);
+                    return toWorld * (Astro::evaluateOrbitVertex(b, b.E_rad) + link.moonTable->offset(jd));
+                };
+                // The line is the osculating ellipse of the full JPL position, so it runs
+                // through the moon: the mean ellipse misses Hyperion, pulled about by Titan,
+                // by up to a quarter of its orbit. mu = n^2 a^3 of the fit keeps the line at
+                // the mean size where the planet's flattening speeds the inner moons up.
+                const double dt = 1.0e-3;   // days, a 300th of Phobos's orbit
+                const glm::dvec3 v = (at(jdTdb + dt) - at(jdTdb - dt)) / (2.0 * dt * Astro::SECONDS_PER_DAY);
+                const double n = link.moon->meanMotion / Astro::SECONDS_PER_DAY, a = std::abs(link.moon->a);
+                link.body->setEphemerisOffset(at(jdTdb), Astro::osculatingBasis(at(jdTdb), v, n * n * a * a * a));
             } else if (link.moonTable != nullptr) {
                 // Asteroids and dwarf planets: barycentric JPL position minus the DE440 Sun,
                 // orbit line osculating.
