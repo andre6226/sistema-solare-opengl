@@ -7,7 +7,7 @@ import re, sys
 
 BODIES = [('Sun', 10), ('Mercury', 199), ('Venus', 299), ('Earth', 399), ('Mars', 499), ('Phobos', 401),
           ('Deimos', 402), ('Jupiter', 599), ('Io', 501), ('Europa', 502), ('Ganymede', 503),
-          ('Callisto', 504), ('Saturn', 699), ('Mimas', 601), ('Enceladus', 602), ('Dione', 604),
+          ('Callisto', 504), ('Saturn', 699), ('Mimas', 601), ('Enceladus', 602), ('Tethys', 603), ('Dione', 604),
           ('Rhea', 605), ('Titan', 606), ('Iapetus', 608), ('Uranus', 799), ('Miranda', 705),
           ('Ariel', 701), ('Umbriel', 702), ('Titania', 703), ('Oberon', 704), ('Neptune', 899),
           ('Triton', 801), ('Pluto', 999), ('Charon', 901), ('Ceres', 2000001), ('Pallas', 2000002),

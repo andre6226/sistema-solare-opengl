@@ -22,6 +22,12 @@ uniform sampler2D bodyTexture;
 uniform vec3  parentCenter;
 uniform float parentRadius;
 
+// Planets with rings: the ring plane, through ringCenter, and the ring texture.
+uniform sampler2D ringTexture;
+uniform vec3  ringCenter;
+uniform vec3  ringNormal;
+uniform float ringOuterRadius;   // 0 when the body has no rings
+
 // Dynamic Eclipse Shadowing
 uniform float sunRadius;
 uniform int shadowCasterCount;
@@ -139,6 +145,19 @@ void main() {
     // sliver lit by 3% of the Sun would look black; seen from space, Earth keeps the
     // linear penumbra, the dark patch that photos of solar eclipses show.
     if (casterHasAtmosphere > 0.5) shadowFactor = pow(shadowFactor, 1.0 / 2.2);
+
+    // The rings' shadow: where the ray towards the Sun crosses the ring plane, the
+    // light left is what the ring texture lets through at that radius. The branch is
+    // uniform per draw, so texture() keeps its derivatives for the mip level.
+    if (ringOuterRadius > 0.0) {
+        vec3 toSun = normalize(lightPos - vWorldPos);
+        float t = dot(ringCenter - vWorldPos, ringNormal) / dot(toSun, ringNormal);
+        float r = length(vWorldPos + toSun * t - ringCenter) / ringOuterRadius;
+        vec4 ring = texture(ringTexture, vec2(clamp((r - RING_INNER) / (RING_OUTER - RING_INNER), 0.0, 1.0), 0.5));
+        // Same cut as the ring pass: what it discards casts nothing.
+        bool opaque = ring.a >= 0.1 && length(ring.rgb) >= 0.15;
+        if (t > 0.0 && r >= RING_INNER && r <= RING_OUTER && opaque) shadowFactor *= 1.0 - ring.a;
+    }
     diffuse *= shadowFactor;
     specular *= shadowFactor;
 

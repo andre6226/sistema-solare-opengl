@@ -19,7 +19,7 @@ or will be, turned the way it really faces.
 | Clock (UTC ↔ TT) | ΔT measured by USNO, 1900–2026 | — | exact for the past, a forecast after 2026 |
 | Poles, spin, shape | IAU WGCCRE 2015 (NAIF `pck00011.tpc`) | — | oblate Saturn, Jupiter, Earth; real prime meridians |
 | Moon's orientation | DE440 lunar librations | — | the near side faces Earth, with libration |
-| 19 planetary moons | JPL satellite ephemerides (Horizons) | JPL samples the tables never saw, 1900–2200 | mean orbit + correction tables: **< 1 km** for every moon (worst: Miranda, 0.92 km), 137 MB |
+| 20 planetary moons | JPL satellite ephemerides (Horizons) | JPL samples the tables never saw, 1900–2200 | mean orbit + correction tables: **< 1 km** for every moon (worst: Miranda, 0.92 km), 145 MB |
 | Asteroids and dwarf planets (Ceres, Pallas, Vesta, Ida, Eros, Gaspra, Haumea, Eris, Makemake) | JPL small-body ephemerides (Horizons) | 20 short JPL requests per body the tables never saw, 1900–2200 | **< 0.3 km**, median tens of metres, 2 MB |
 | Saturn's rings | texture measured on the Cassini division and Encke gap | — | C ring to F ring at the real radii |
 
@@ -153,7 +153,7 @@ ship, so each moon is stored in two layers:
    precession, a slow drift of the mean motion (Phobos is spiralling into Mars),
    and up to three resonance librations found automatically from the residuals.
    Mimas, locked in a resonance with Tethys, swings ±44° about its mean position
-   every 70 years. The fit grows from a 30-orbit arc to 2 years, 30 years and
+   every 70 years, and Tethys ±2.1° on the same beat. The fit grows from a 30-orbit arc to 2 years, 30 years and
    finally 300 years, so the orbital phase is never lost. The along-track error
    is measured as an unwrapped angle, so even large errors are corrected exactly.
    On the short arcs the Laplace pole is held at JPL's published value: there it
@@ -206,6 +206,13 @@ edge, the Cassini division, the Encke gap and the A ring's outer edge all land
 on a straight line in pixels. That puts the texture between 70,750 and
 140,920 km from Saturn's centre, from inside the C ring out to the F ring, and
 the rings are drawn at that size. They were 10% too small before.
+
+They lie in Saturn's equator (its IAU pole) and cast their shadow on the globe:
+for each point of Saturn, the ray towards the Sun crosses the ring plane at some
+radius, and the light left is what the ring texture lets through there. The
+shadow edges are sharp; the Sun's disc would blur them by about 100 km.
+
+Tethys has no map of its own yet: it borrows Mimas's texture.
 
 ## Regenerating the data
 

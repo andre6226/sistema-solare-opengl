@@ -133,6 +133,11 @@ struct UniformLocations {
     GLint parentCenter;
     GLint parentRadius;
 
+    // Planets with rings: the ring plane's normal and outer radius (0 = no rings).
+    GLint ringCenter;
+    GLint ringNormal;
+    GLint ringOuterRadius;
+
     // Dynamic Eclipse Shadowing
     GLint sunRadius;
     GLint shadowCasterCount;

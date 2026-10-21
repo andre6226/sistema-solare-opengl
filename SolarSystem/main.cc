@@ -53,6 +53,9 @@ int main() {
         locs.bodyType     = shader.uniformLocation("bodyType");
         locs.parentCenter = shader.uniformLocation("parentCenter");
         locs.parentRadius = shader.uniformLocation("parentRadius");
+        locs.ringCenter      = shader.uniformLocation("ringCenter");
+        locs.ringNormal      = shader.uniformLocation("ringNormal");
+        locs.ringOuterRadius = shader.uniformLocation("ringOuterRadius");
         locs.sunRadius          = shader.uniformLocation("sunRadius");
         locs.shadowCasterCount   = shader.uniformLocation("shadowCasterCount");
         locs.shadowCasterPos     = shader.uniformLocation("shadowCasterPos");
@@ -63,6 +66,7 @@ int main() {
         // Sampler uniforms default to 0, so binding textures to GL_TEXTURE0
         // happened to work already. Stating it makes the coupling explicit.
         glUniform1i(shader.uniformLocation("bodyTexture"), 0);
+        glUniform1i(shader.uniformLocation("ringTexture"), 1);
         // The light never moves, so it is uploaded once rather than per frame.
         glUniform3fv(locs.lightPos, 1, &lightPosition[0]);
 

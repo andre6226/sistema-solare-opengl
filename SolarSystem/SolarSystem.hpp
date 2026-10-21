@@ -585,6 +585,7 @@ private:
         // --- MOONS OF SATURN ---
         createBody(Astro::Mimas, saturn);
         createBody(Astro::Enceladus, saturn);
+        createBody(Astro::Tethys, saturn);
         createBody(Astro::Dione, saturn);
         createBody(Astro::Rhea, saturn);
         createBody(Astro::Titan, saturn);
