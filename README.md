@@ -48,6 +48,9 @@ and by several minutes by 2200. Nobody can do better until it happens.
 
 ## Build and run
 
+Textures, tables and shape models are stored with Git LFS: install `git-lfs`
+before cloning (or run `git lfs pull` after), or they arrive as 130-byte pointers.
+
 ```
 cmake -B build -D CMAKE_BUILD_TYPE=Release
 cmake --build build
