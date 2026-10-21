@@ -135,9 +135,10 @@ void main() {
             }
         }
     }
-    // The visible fraction is linear light while the shading is in display space:
-    // encode it, or a sliver lit by 3% of the Sun would look black instead of bright.
-    shadowFactor = pow(shadowFactor, 1.0 / 2.2);
+    // On the Moon in Earth's shadow, encode the linear fraction for the eye, or a
+    // sliver lit by 3% of the Sun would look black; seen from space, Earth keeps the
+    // linear penumbra, the dark patch that photos of solar eclipses show.
+    if (casterHasAtmosphere > 0.5) shadowFactor = pow(shadowFactor, 1.0 / 2.2);
     diffuse *= shadowFactor;
     specular *= shadowFactor;
 
