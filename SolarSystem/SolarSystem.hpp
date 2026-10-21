@@ -110,8 +110,21 @@ public:
         }
     }
 
+    bool selectByName(const std::string& name) {
+        for (const auto& body : bodies) {
+            if (body->isNavigable() && body->getName() == name) {
+                currentTarget = body.get();
+                recenterOnTarget();
+                return true;
+            }
+        }
+        return false;
+    }
+
     void selectNextSibling()     { moveToSibling(+1); }
     void selectPreviousSibling() { moveToSibling(-1); }
+
+    glm::vec3 getSunPosition() const { return sun ? sun->getWorldPosition() : glm::vec3(0.0f); }
 
     glm::vec3 getTargetPosition() const {
         if (currentTarget) return currentTarget->getWorldPosition();

@@ -42,3 +42,26 @@ g++ -std=c++17 -O2 -Wall -Wextra -DSFML_STATIC \
     -o "$ROOT_DIR/build/test_time_picker" \
     -L"$ROOT_DIR/build/_deps/sfml-build/lib" -lsfml-graphics -lsfml-window -lsfml-system -lGL
 "$ROOT_DIR/build/test_time_picker"
+
+echo ""
+echo "================================================================="
+echo " Visual Regression (screenshots vs tests/visual/ref)..."
+echo "================================================================="
+if [ ! -x "$ROOT_DIR/build/SolarSystem.bin" ]; then
+    echo "SKIP: build/SolarSystem.bin not built"
+elif ! command -v xvfb-run > /dev/null && [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then
+    echo "SKIP: no display and no xvfb-run"
+else
+    g++ -std=c++17 -O2 -Wall -Wextra -DSFML_STATIC \
+        -I"$ROOT_DIR/build/_deps/sfml-src/include" \
+        "$ROOT_DIR/tests/visual/compare_png.cpp" \
+        -o "$ROOT_DIR/build/compare_png" \
+        -L"$ROOT_DIR/build/_deps/sfml-build/lib" -lsfml-graphics-s -lsfml-system-s
+    "$ROOT_DIR/tests/visual/render_refs.sh" "$ROOT_DIR/build/visual" > /dev/null
+    # References come from xvfb (llvmpipe); a GPU render differs by ~0.5-2, another scene by ~20.
+    for ref in "$ROOT_DIR"/tests/visual/ref/*.png; do
+        printf '%-24s ' "$(basename "$ref" .png)"
+        "$ROOT_DIR/build/compare_png" "$ref" "$ROOT_DIR/build/visual/$(basename "$ref")"
+    done
+    echo ">>> VISUAL REGRESSION PASSED <<<"
+fi

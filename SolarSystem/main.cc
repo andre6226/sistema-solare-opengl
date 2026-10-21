@@ -16,11 +16,14 @@
 
 #include <SFML/System/Clock.hpp>
 #include <SFML/System/Sleep.hpp>
+#include <SFML/Graphics/Image.hpp>
 #include <algorithm>
+#include <cstdio>
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 // Frame deltas are truncated at this value: if the window stalls (dragging,
 // suspend, a debugger breakpoint) the first frame after the stall would carry a
@@ -30,7 +33,38 @@ static constexpr float maxFrameDelta = 0.1f;
 // The Sun sits at the origin of world space and is the only light source.
 static const glm::vec3 lightPosition(0.0f, 0.0f, 0.0f);
 
-int main() {
+// Frames rendered before a --screenshot is read back, so every per-frame
+// quantity (sky sphere, markers, FPS smoothing) has settled.
+static constexpr int screenshotFrames = 3;
+
+static int usage(const char* argv0) {
+    std::cerr << "usage: " << argv0 << " [--date YYYY-MM-DDTHH:MM:SS] [--focus BODY] [--distance KM]\n"
+              << "       [--azimuth DEG] [--elevation DEG] [--screenshot OUT.png]\n"
+              << "With --focus, the camera looks from the Sun's side of the body; azimuth and\n"
+              << "elevation turn it from there. --screenshot freezes time, saves, and exits.\n";
+    return 2;
+}
+
+int main(int argc, char** argv) {
+    std::string dateArg, focusArg, screenshotPath;
+    float distanceKm = 0.0f, azimuthOffset = 0.0f, elevationOffset = 0.0f;
+    for (int i = 1; i < argc; ++i) {
+        const std::string opt = argv[i];
+        if (i + 1 >= argc) return usage(argv[0]);
+        const char* value = argv[++i];
+        try {
+            if      (opt == "--date")       dateArg = value;
+            else if (opt == "--focus")      focusArg = value;
+            else if (opt == "--screenshot") screenshotPath = value;
+            else if (opt == "--distance")   distanceKm = std::stof(value);
+            else if (opt == "--azimuth")    azimuthOffset = std::stof(value);
+            else if (opt == "--elevation")  elevationOffset = std::stof(value);
+            else return usage(argv[0]);
+        } catch (const std::exception&) {
+            return usage(argv[0]);
+        }
+    }
+
     try {
         Setup setup;
         sf::Window& window = setup.window;
@@ -42,6 +76,18 @@ int main() {
                   << ", T = " << std::setprecision(6) << solarSystem.getJulianCenturies() << " cy)" << std::endl;
         Camera camera(30.0f, 0.0f, 20.0f);
         Hud hud;
+
+        if (!dateArg.empty()) {
+            int y, mo, d, h, mi, sec;
+            if (std::sscanf(dateArg.c_str(), "%d-%d-%dT%d:%d:%d", &y, &mo, &d, &h, &mi, &sec) != 6) {
+                std::cerr << "bad --date '" << dateArg << "', expected YYYY-MM-DDTHH:MM:SS (UTC)" << std::endl;
+                return 2;
+            }
+            // The same path as the time picker's Apply.
+            Astro::clampPickerValues(y, mo, d, h, mi, sec);
+            solarSystem.setSimUnixSeconds(Astro::utcDateTimeToUnix(y, mo, d, h, mi, sec));
+            std::cout << "[time] Set UTC: " << Astro::formatUtcDateTime(solarSystem.getSimUnixSeconds()) << std::endl;
+        }
 
         UniformLocations locs;
         locs.view         = shader.uniformLocation("view");
@@ -78,6 +124,20 @@ int main() {
         sf::Clock clock;
 
         std::string previousTarget = "";
+        if (!focusArg.empty()) {
+            if (!solarSystem.selectByName(focusArg)) {
+                std::cerr << "unknown body for --focus: '" << focusArg << "'" << std::endl;
+                return 2;
+            }
+            camera.setDirection(solarSystem.getSunPosition() - solarSystem.getTargetPosition(),
+                                azimuthOffset, elevationOffset);
+        }
+        camera.focusOn(solarSystem.getTargetRadius());
+        previousTarget = solarSystem.getTargetName();   // the loop must not re-focus over --distance
+        if (distanceKm > 0.0f) camera.setDistance(distanceKm);
+        const bool screenshotMode = !screenshotPath.empty();
+        int framesRendered = 0;
+        if (screenshotMode) input.timeScale = 0.0f;   // frozen until a SHIFT/CTRL press
         float smoothedFps = 60.0f;
 
         while (running) {
@@ -157,6 +217,19 @@ int main() {
             glBindVertexArray(0);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+            // Read the back buffer before display(), which leaves it undefined.
+            if (screenshotMode && ++framesRendered == screenshotFrames) {
+                std::vector<std::uint8_t> pixels(size_t(size.x) * size.y * 4);
+                glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                glReadPixels(0, 0, GLsizei(size.x), GLsizei(size.y), GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+                if (glGetError() != GL_NO_ERROR) throw std::runtime_error("glReadPixels failed");
+                sf::Image image(size, pixels.data());
+                image.flipVertically();   // OpenGL rows run bottom-up
+                if (!image.saveToFile(screenshotPath)) throw std::runtime_error("could not save " + screenshotPath);
+                std::cout << "[screenshot] " << screenshotPath << std::endl;
+                running = false;
+            }
 
             window.display();
         }

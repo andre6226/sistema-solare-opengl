@@ -48,6 +48,15 @@ public:
         distance    = std::clamp(4.0f * targetRadius, minDistance, maxDistance);
     }
 
+    void setDistance(float d) { distance = std::clamp(d, minDistance, maxDistance); }
+
+    // Places the camera along fromTarget (any length), plus offsets in degrees.
+    void setDirection(glm::vec3 fromTarget, float azimuthOffset = 0.0f, float elevationOffset = 0.0f) {
+        const glm::vec3 u = glm::normalize(fromTarget);
+        azimuth   = glm::degrees(std::atan2(u.x, u.z)) + azimuthOffset;
+        elevation = std::clamp(glm::degrees(std::asin(u.y)) + elevationOffset, -89.0f, 89.0f);
+    }
+
     void zoom(float amount) {
         distance *= std::pow(zoomFactor, amount);
         distance  = std::clamp(distance, minDistance, maxDistance);
