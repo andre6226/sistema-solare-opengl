@@ -184,6 +184,7 @@ int main() {
                                   MoonCheck{"Callisto", 2446586.742705, 1324878.500, 1192514.656, 584149.326},
                                   MoonCheck{"Mimas", 2452334.303876, -150849.842, 113622.996, -584.028},
                                   MoonCheck{"Enceladus", 2458081.865047, -229492.755, -62430.216, 24319.725},
+                                  MoonCheck{"Tethys", 2460955.271828, -145374.071, -255036.011, 25653.804},
                                   MoonCheck{"Dione", 2463829.426219, -58409.827, 372972.553, -22443.410},
                                   MoonCheck{"Rhea", 2469576.987390, 440852.868, 282644.369, -56418.955},
                                   MoonCheck{"Titan", 2475324.548561, -506334.671, -1125553.300, 119398.690},
@@ -204,7 +205,7 @@ int main() {
                 ++moonsChecked;
             }
         }
-        assert(moonsChecked == 19);
+        assert(moonsChecked == 20);
 
         // Asteroids and dwarf planets: barycentric table minus the DE440 Sun, against
         // JPL Horizons heliocentric ICRF km (short requests, off the table grid): within 1 km.

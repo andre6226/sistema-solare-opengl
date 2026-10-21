@@ -21,6 +21,7 @@ MOONS = [('Phobos', 401, 499, 0.3187, 317.7, 52.9), ('Deimos', 402, 499, 1.2625,
          ('Io', 501, 599, 1.7627, 268.1, 64.5), ('Europa', 502, 599, 3.5255, 268.1, 64.5),
          ('Ganymede', 503, 599, 7.1556, 268.2, 64.6), ('Callisto', 504, 599, 16.6904, 268.7, 64.8),
          ('Mimas', 601, 699, 0.9424, 40.6, 83.5), ('Enceladus', 602, 699, 1.3702, 40.6, 83.5),
+         ('Tethys', 603, 699, 1.8878, 40.6, 83.5),
          ('Dione', 604, 699, 2.7369, 40.6, 83.5), ('Rhea', 605, 699, 4.5175, 40.6, 83.5),
          ('Titan', 606, 699, 15.9454, 36.4, 84.0), ('Iapetus', 608, 699, 79.3310, 288.7, 78.9),
          ('Miranda', 705, 799, 1.4135, 257.3, -15.2), ('Ariel', 701, 799, 2.5204, 257.3, -15.2),
@@ -195,8 +196,8 @@ def main(cache, out):
         ra, dec, a, h, k, wdot, pp, qq, odot, lam0, n, n2 = p[:12]
         terms = ', '.join('{%r, %r, %r}' % tuple(p[j:j + 3]) for j in range(12, len(p), 3))
         rows.append('        {"%s", %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, {%s}},  // max error %.2f deg' % (
-            name, ra, dec, a, np.hypot(h, k), np.arctan2(h, k), wdot, 2 * np.arctan(np.hypot(pp, qq)),
-            np.arctan2(pp, qq), odot, lam0, n, n2, max(err.max(), check.max()), terms, max(err.max(), check.max())))
+            name, ra, dec, a, float(np.hypot(h, k)), float(np.arctan2(h, k)), wdot, float(2 * np.arctan(np.hypot(pp, qq))),
+            float(np.arctan2(pp, qq)), odot, lam0, n, n2, float(max(err.max(), check.max())), terms, max(err.max(), check.max())))
     with open(out, 'w') as f:
         f.write('''#pragma once
 #include <vector>

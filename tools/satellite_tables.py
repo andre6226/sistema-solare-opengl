@@ -56,7 +56,7 @@ def evaluate(coeffs, start, seg, t):
 # Download grid per moon: segment in orbital periods, coefficients (2 samples each).
 # Picked once on 40 orbits of 2023; pinned so that the cached Horizons replies stay valid.
 SAMPLING = {'Phobos': (2, 14), 'Deimos': (2, 14), 'Io': (1, 12), 'Europa': (1, 12), 'Ganymede': (0.25, 8),
-            'Callisto': (0.25, 12), 'Mimas': (0.5, 8), 'Enceladus': (1, 12), 'Dione': (1, 12), 'Rhea': (1, 12),
+            'Callisto': (0.25, 12), 'Mimas': (0.5, 8), 'Enceladus': (1, 12), 'Tethys': (1, 12), 'Dione': (1, 12), 'Rhea': (1, 12),
             'Titan': (0.5, 10), 'Iapetus': (0.125, 12), 'Miranda': (1, 10), 'Ariel': (1, 14), 'Umbriel': (1, 12),
             'Titania': (0.5, 10), 'Oberon': (0.5, 12), 'Triton': (1, 8), 'Charon': (2, 8)}
 
