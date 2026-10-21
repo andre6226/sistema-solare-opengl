@@ -274,7 +274,9 @@ the rings are drawn at that size. They were 10% too small before.
 
 They lie in Saturn's equator (its IAU pole) and cast their shadow on the globe:
 for each point of Saturn, the ray towards the Sun crosses the ring plane at some
-radius, and the light left is what the ring texture lets through there. The
+radius, and the light left is e^-τ/μ0, the ring's optical depth τ (read off the
+texture's opacity, seen face-on) along the slanted path, so the lower the Sun the
+darker the band. The
 shadow edges are sharp; the Sun's disc would blur them by about 100 km. The lit
 rings also shine on the band they shadow, a few percent of sunlight, so its cloud
 belts still show.
@@ -284,10 +286,15 @@ poles: the ray to the Sun is tested against the ellipsoid, not a sphere, which
 would make the shadow 6% too long. The shadow is half an ellipse whose length grows
 as the Sun drops towards the ring plane: in 2017, with the Sun 27° up, it ended in
 the A ring; near the 2025 equinox it ran across all of them. Rings in the shadow
-keep a faint glow from Saturn's day side. From the face away from the Sun the rings only glow with
-the light that diffuses through them: the opaque B ring goes nearly black, the thin
-C ring and the Cassini division stay faintly bright, as in Cassini's views of the
-unlit side. Since the 2025 equinox the Sun lights the south face, so from the north
+keep a faint glow from Saturn's day side.
+
+The rings' brightness is single scattering in a layer of optical depth τ, with μ0
+and μ the cosines of the Sun and of the eye to the ring plane. The lit face goes
+as 1 − e^-τ(1/μ + 1/μ0), so as the Sun grazes the rings they fade out, and at the
+2025 equinox they nearly vanish. From the face away from the Sun the rings only
+glow with the light that gets through them: the opaque B ring goes nearly black,
+the thin C ring and the Cassini division stay faintly bright, as in Cassini's views
+of the unlit side. Seen at a slant the rings also look more opaque, 1 − e^-τ/μ. Since the 2025 equinox the Sun lights the south face, so from the north
 the rings look dark until 2039.
 
 

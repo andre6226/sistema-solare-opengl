@@ -209,10 +209,12 @@ void main() {
         // Same cut as the ring pass: what it discards casts nothing.
         bool opaque = ring.a >= 0.1 && length(ring.rgb) >= 0.15;
         if (t > 0.0 && r >= RING_INNER && r <= RING_OUTER && opaque) {
-            shadowFactor *= 1.0 - ring.a;
+            // Sunlight crosses the ring at a slant: e^-tau/mu0, darker the lower the Sun.
+            float blocked = 1.0 - exp(log(max(1.0 - ring.a, 0.002)) / max(abs(dot(toSun, ringNormal)), 0.002));
+            shadowFactor *= 1.0 - blocked;
             // Ringshine: the rings themselves glow in sunlight and light the band their
             // shadow darkens, so its cloud belts still show, a few percent of the Sun.
-            umbraLight += vec3(0.06) * ring.a * diff;
+            umbraLight += vec3(0.06) * blocked * diff;
         }
     }
     diffuse *= shadowFactor;
@@ -233,18 +235,28 @@ void main() {
         float miss = length(o + d * max(tClosest, 0.0));
         // Saturn's upper air dims the edge over a few hundred km.
         float inShadow = (tClosest > 0.0) ? 1.0 - smoothstep(parentRadius * 0.995, parentRadius * 1.003, miss) : 0.0;
-        // Lit by the Sun, or in the shadow by the planet's dayside glow, ~1.5% as bright.
-        ambient  = mix(vec3(0.8), vec3(0.012), inShadow);
-        diffuse  *= 1.0 - inShadow;
-        specular *= 1.0 - inShadow;
-        // Seen from the face away from the Sun, the rings only glow with the light that
-        // diffuses through them: next to none through the opaque B ring, the most through
-        // the thin C ring and the Cassini division. 2a(1-a) peaks at half opacity.
-        float litFace = smoothstep(-0.01, 0.01, dot(pole, viewDir) * sign(dot(pole, lightDir)));
-        float through = mix(2.0 * texColor.a * (1.0 - texColor.a), 1.0, litFace);
-        ambient *= through;
-        diffuse *= through;
-        specular *= through;
+        // A layer of particles of optical depth tau, read off the texture's opacity
+        // (seen face-on, a = 1 - e^-tau). Single scattering, mu0 and mu the cosines of
+        // the Sun and of the eye to the ring plane: the lit face brightens as
+        // 1 - e^-tau(1/mu + 1/mu0), so with the Sun grazing (equinox) the rings fade
+        // out; the far face only glows with light that got through; and the eye sees
+        // through e^-tau/mu of them, less the more slanted the view.
+        float a = texColor.a;
+        float tau = -log(max(1.0 - a, 0.002));
+        float sunUp = dot(pole, lightDir), eyeUp = dot(pole, viewDir);
+        float mu0 = max(abs(sunUp), 0.002), mu = max(abs(eyeUp), 0.02);
+        float litFace = mu0 / (mu + mu0) * (1.0 - exp(-tau * (1.0 / mu + 1.0 / mu0)));
+        float farFace = (abs(mu - mu0) > 1e-3) ? mu0 / (mu0 - mu) * (exp(-tau / mu0) - exp(-tau / mu))
+                                               : tau / mu * exp(-tau / mu);
+        float sameSide = smoothstep(-0.01, 0.01, eyeUp * sign(sunUp));
+        // Brightness relative to the Sun and the eye both 60 deg from the poles, the
+        // geometry the texture's colours stand for.
+        float glow = mix(farFace, litFace, sameSide) / max(0.5 * (1.0 - exp(-4.0 * tau)), 1e-4);
+        float seen = 1.0 - exp(-tau / mu);
+        // In Saturn's shadow, its dayside glow, ~1.5% of sunlight.
+        vec3 radiance = albedo * 1.2 * glow * a * mix(1.0, 0.015, inShadow);
+        FragColor = vec4(radiance / max(seen, 1e-3), seen);
+        return;
     }
 
     vec3 color;
