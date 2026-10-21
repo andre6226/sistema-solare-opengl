@@ -237,6 +237,14 @@ void main() {
         ambient  = mix(vec3(0.8), vec3(0.012), inShadow);
         diffuse  *= 1.0 - inShadow;
         specular *= 1.0 - inShadow;
+        // Seen from the face away from the Sun, the rings only glow with the light that
+        // diffuses through them: next to none through the opaque B ring, the most through
+        // the thin C ring and the Cassini division. 2a(1-a) peaks at half opacity.
+        float litFace = smoothstep(-0.01, 0.01, dot(pole, viewDir) * sign(dot(pole, lightDir)));
+        float through = mix(2.0 * texColor.a * (1.0 - texColor.a), 1.0, litFace);
+        ambient *= through;
+        diffuse *= through;
+        specular *= through;
     }
 
     vec3 color;

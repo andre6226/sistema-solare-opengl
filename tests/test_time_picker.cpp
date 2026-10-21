@@ -211,6 +211,12 @@ int main() {
             }
         }
         assert(moonsChecked == 24);
+        // Every moon's orbit line is drawn: none may reach the renderer with a <= 0.
+        for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
+            const Astro::KeplerianBasis b = Astro::satelliteBasis(s, 1234.5);
+            assert(b.a_km > 0.0);
+            assert(glm::length(Astro::evaluateOrbitVertex(b, b.E_rad)) >= 0.999 * b.a_km * (1.0 - b.e));   // never inside periapsis
+        }
 
         // Pluto's centre: DE440's Pluto-Charon barycentre minus Charon's pull (as in
         // SolarSystem::plutoCentreOffset), against JPL Horizons body 999: within 1 km.

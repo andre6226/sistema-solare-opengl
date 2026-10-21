@@ -284,7 +284,11 @@ poles: the ray to the Sun is tested against the ellipsoid, not a sphere, which
 would make the shadow 6% too long. The shadow is half an ellipse whose length grows
 as the Sun drops towards the ring plane: in 2017, with the Sun 27° up, it ended in
 the A ring; near the 2025 equinox it ran across all of them. Rings in the shadow
-keep a faint glow from Saturn's day side.
+keep a faint glow from Saturn's day side. From the face away from the Sun the rings only glow with
+the light that diffuses through them: the opaque B ring goes nearly black, the thin
+C ring and the Cassini division stay faintly bright, as in Cassini's views of the
+unlit side. Since the 2025 equinox the Sun lights the south face, so from the north
+the rings look dark until 2039.
 
 
 ## Earth's clouds, lights and air

@@ -265,7 +265,10 @@ namespace Astro {
         KeplerianBasis b{};
         b.P_world = laplace * glm::dvec3(cO * cw - sO * sw * ci, sO * cw + cO * sw * ci, sw * si);
         b.Q_world = laplace * glm::dvec3(-cO * sw - sO * cw * ci, -sO * sw + cO * cw * ci, cw * si);
-        b.a_km = s.a;
+        // The fit may land on a < 0, the same ellipse turned half a turn: flip it back so
+        // every caller (the orbit lines skip a <= 0) sees a positive semi-major axis.
+        b.a_km = std::abs(s.a);
+        if (s.a < 0.0) { b.P_world = -b.P_world; b.Q_world = -b.Q_world; }
         b.e = s.e;
         b.M_rad = lambda - varpi;
         b.E_rad = solveKepler(b.M_rad, b.e);
