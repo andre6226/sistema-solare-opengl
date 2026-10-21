@@ -126,8 +126,11 @@ public:
 
         // Bodies without an IAU model: tilting about -X leans the pole toward world -Z
         // (ecliptic longitude 90 deg), where Earth's north pole points.
+        // Rings lie in the parent's equator, the only orientation they inherit.
         const glm::dmat4 tiltedMatrix = hasPole
             ? positionMatrix * glm::dmat4(equatorFrame)
+            : (type == BodyType::Ring)
+            ? positionMatrix * glm::dmat4(glm::dmat3(parentMatrix))
             : glm::rotate(positionMatrix, static_cast<double>(axialTilt), glm::dvec3(-1.0, 0.0, 0.0));
 
         const glm::dmat4 spinMatrix = hasPole
@@ -220,6 +223,20 @@ public:
             glUniform3fv(locs.shadowCasterPos, casterCount, &casterPos[0][0]);
             glUniform1fv(locs.shadowCasterRadius, casterCount, &casterRadius[0]);
         }
+
+        // A planet with rings: their plane and texture, so base.frag can shade their shadow.
+        float ringRadius = 0.0f;
+        if (type == BodyType::Planet) {
+            for (const CelestialBody* sat : satellites) {
+                if (sat->type != BodyType::Ring || sat->texture == nullptr) continue;
+                const glm::vec3 ringNormal = sat->exactOrientation[1];
+                glUniform3fv(locs.ringCenter, 1, &worldPosition[0]);
+                glUniform3fv(locs.ringNormal, 1, &ringNormal[0]);
+                ringRadius = sat->scale;
+                sat->texture->bind(1);
+            }
+        }
+        glUniform1f(locs.ringOuterRadius, ringRadius);
 
         if (texture != nullptr) {
             texture->bind(0);
