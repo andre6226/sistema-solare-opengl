@@ -187,6 +187,14 @@ int main(int argc, char** argv) {
                                  solarSystem.getSunPosition());
                 }
             }
+            if (!input.flyRequest.empty()) {
+                const CelestialBody* destination = solarSystem.findBody(input.flyRequest);
+                input.flyRequest.clear();
+                if (destination != nullptr && destination != solarSystem.getTarget()) {
+                    travel.start(solarSystem.getTarget(), destination, lastCameraPosition, lastForward,
+                                 solarSystem.getSunPosition());
+                }
+            }
             // A target picked from the keyboard mid-flight ends the flight.
             if (travel.active() && solarSystem.getTarget() != travel.origin() &&
                 solarSystem.getTarget() != travel.destination()) {
@@ -279,6 +287,10 @@ int main(int argc, char** argv) {
             hudFrame.fps            = smoothedFps;
             hudFrame.utcTime        = Astro::formatUtcDateTime(solarSystem.getSimUnixSeconds());
             hudFrame.timePickerOpen = input.timePickerOpen;
+            hudFrame.searchOpen     = input.searchOpen;
+            hudFrame.searchText     = input.searchText;
+            const CelestialBody* match = solarSystem.findByPrefix(input.searchText);
+            hudFrame.searchMatch    = match ? match->getName() : "";
             hudFrame.pickerField    = input.pickerField;
             hudFrame.pickerYear     = input.pickerYear;
             hudFrame.pickerMonth    = input.pickerMonth;

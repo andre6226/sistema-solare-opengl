@@ -299,6 +299,15 @@ int main() {
             assert(std::abs(Orbits::smallBodyLine(eph, halley, 2477000.0).periodDays / 365.25 - 72.6) < 0.2);   // after 2061
         }
 
+        // Find by name: prefix first, then substring, case aside.
+        {
+            const std::vector<std::string> names = {"Sun", "Saturn", "Dione", "Io", "Halley"};
+            assert(SolarSystem::bestNameMatch(names, "io") == 3);
+            assert(SolarSystem::bestNameMatch(names, "SAT") == 1);
+            assert(SolarSystem::bestNameMatch(names, "ley") == 4);
+            assert(SolarSystem::bestNameMatch(names, "") == -1 && SolarSystem::bestNameMatch(names, "xyz") == -1);
+        }
+
         // Mars 1.03 days
         const double T_mars = T0 + 1.03 / Astro::DAYS_PER_JULIAN_CENTURY;
         const double marsRot0 = (D0 / Astro::Mars.rotationPeriodDays) * glm::two_pi<double>();

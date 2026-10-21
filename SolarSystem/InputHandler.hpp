@@ -31,6 +31,12 @@ struct InputState {
     int pickerMin = 0;
     int pickerSec = 0;
     std::string digitBuffer;
+
+    // Find by name: F opens it, typing narrows, Enter flies to the match.
+    bool searchOpen = false;
+    bool skipNextText = false;     // the F that opened it also arrives as text
+    std::string searchText;
+    std::string flyRequest;        // a body to fly to, for main
 };
 
 class InputHandler {
@@ -309,11 +315,27 @@ public:
             else if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
                 handleKey(key->code, system, state);
             }
+            else if (const auto* typed = event->getIf<sf::Event::TextEntered>()) {
+                // Printable ASCII only: body names are plain English.
+                if (state.searchOpen && !state.skipNextText && typed->unicode >= 32 && typed->unicode < 127) {
+                    state.searchText += static_cast<char>(typed->unicode);
+                }
+                state.skipNextText = false;
+            }
         }
     }
 
 private:
     static void handleKey(sf::Keyboard::Key code, SolarSystem& system, InputState& state) {
+        if (state.searchOpen) {
+            if (code == sf::Keyboard::Key::Escape) state.searchOpen = false;
+            if (code == sf::Keyboard::Key::Backspace && !state.searchText.empty()) state.searchText.pop_back();
+            if (code == sf::Keyboard::Key::Enter) {
+                if (const CelestialBody* match = system.findByPrefix(state.searchText)) state.flyRequest = match->getName();
+                state.searchOpen = false;
+            }
+            return;   // letters arrive as TextEntered
+        }
         if (state.timePickerOpen) {
             if (code == sf::Keyboard::Key::Escape || code == sf::Keyboard::Key::T) {
                 closeTimePicker(state);
@@ -378,6 +400,11 @@ private:
 
             case sf::Keyboard::Key::O:        system.toggleOrbitLines();      break;
             case sf::Keyboard::Key::T:        openTimePicker(system, state);  break;
+            case sf::Keyboard::Key::F:
+                state.searchOpen = true;
+                state.skipNextText = true;
+                state.searchText.clear();
+                break;
 
             default: return;
         }

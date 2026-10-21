@@ -97,6 +97,8 @@ struct HudFrame {
     std::string utcTime;
     std::vector<BodyMarker> markers;
     bool timePickerOpen = false;
+    bool searchOpen = false;
+    std::string searchText, searchMatch;
     int pickerField = 0; // 0=Year, 1=Month, 2=Day, 3=Hour, 4=Min, 5=Sec
     int pickerYear = 2026;
     int pickerMonth = 10;
@@ -120,6 +122,7 @@ public:
         if (frame.timePickerOpen) {
             drawTimePicker(frame, static_cast<float>(width), static_cast<float>(height));
         }
+        if (frame.searchOpen) drawSearch(frame, static_cast<float>(width));
 
         text.end();
     }
@@ -244,9 +247,20 @@ private:
     void drawControls(float height) {
         const std::string hint =
             "CLICK  fly to    ARROWS  navigate    DRAG  orbit    WHEEL  zoom    "
-            "SHIFT / CTRL  time    SPACE  reset    O  orbits    T  date";
+            "SHIFT / CTRL  time    SPACE  reset    O  orbits    T  date    F  find";
 
         text.text(hint, margin, height - margin, smallScale, dim);
+    }
+
+    // A field at the top centre: what was typed, and the body Enter would fly to.
+    void drawSearch(const HudFrame& frame, float screenW) {
+        const float w = 420.0f, h = 2.2f * text.lineHeight(rowScale), x = 0.5f * (screenW - w), y = margin;
+        text.rect(x, y, w, h, glm::vec4(0.05f, 0.07f, 0.12f, 0.88f));
+        text.rect(x, y + h - 1.5f, w, 1.5f, accent);
+        const float baseline = y + 1.4f * text.lineHeight(rowScale);
+        text.text("FIND  " + frame.searchText + "_", x + 14.0f, baseline, rowScale, bright);
+        const std::string match = frame.searchText.empty() ? "type a name" : (frame.searchMatch.empty() ? "no match" : "Enter: " + frame.searchMatch);
+        text.text(match, x + w - 14.0f - text.measure(match, smallScale), baseline, smallScale, frame.searchMatch.empty() ? dim : accent);
     }
 
     void drawTimePicker(const HudFrame& frame, float screenW, float screenH) {

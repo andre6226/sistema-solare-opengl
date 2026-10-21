@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <vector>
@@ -120,6 +121,32 @@ public:
             if (body->isNavigable() && body->getName() == name) return body.get();
         }
         return nullptr;
+    }
+
+    // The body a typed name means, or nullptr: see bestNameMatch.
+    const CelestialBody* findByPrefix(const std::string& typed) const {
+        std::vector<const CelestialBody*> navigable;
+        std::vector<std::string> names;
+        for (const auto& body : bodies) {
+            if (body->isNavigable()) { navigable.push_back(body.get()); names.push_back(body->getName()); }
+        }
+        const int i = bestNameMatch(names, typed);
+        return (i < 0) ? nullptr : navigable[i];
+    }
+
+    // The first name that starts with what was typed, else the first that contains it,
+    // case aside ("io" -> Io before Dione). -1 for none or "".
+    static int bestNameMatch(const std::vector<std::string>& names, const std::string& typed) {
+        if (typed.empty()) return -1;
+        const auto lower = [](std::string s) { for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c))); return s; };
+        const std::string key = lower(typed);
+        int contains = -1;
+        for (int i = 0; i < static_cast<int>(names.size()); ++i) {
+            const std::string name = lower(names[i]);
+            if (name.rfind(key, 0) == 0) return i;
+            if (contains < 0 && name.find(key) != std::string::npos) contains = i;
+        }
+        return contains;
     }
 
     bool selectByName(const std::string& name) {

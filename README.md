@@ -83,6 +83,8 @@ and the shaders next to the binary on every build, changed files only.
   it, eases out, rushes through the empty middle with a widening field of view
   and eases into orbit on its lit side, 3 to 9 seconds whatever the distance.
   `UP` parent, `DOWN` first moon, `LEFT`/`RIGHT` siblings jump straight there.
+  `F` opens a find field: type part of a name ("sat", "halley"), `ENTER` flies
+  to the first match, `ESC` closes it.
 * **Time:** `T` opens the date picker (1900–2200, UTC); `SHIFT`/`CTRL` speed
   time up or down by 1.5× a press, up to 10⁸× (3 years a second), `SPACE` back
   to real time. Past an hour a second the HUD also shows the rate, e.g. 2.4 d/s.
