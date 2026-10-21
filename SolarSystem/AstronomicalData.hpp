@@ -458,6 +458,12 @@ namespace Astro {
         {67.781, 0.0, 0.4407, 0.0, 44.040, 0.0, 30.310, 64.51, 187.510, 0.0, 35.870, 0.0, false}
     };
 
+    // Comet 1P/Halley: nucleus 15 x 8 x 8 km (Giotto, 1986), perihelion 1986-02-09.
+    inline constexpr BodyData Halley = {
+        "Halley", 5.5, 2667900000.0, 27510.0, 2.2, 0.0,
+        {17.834, 0.0, 0.96714, 0.0, 162.26, 0.0, 236.2, 477.97, 169.75, 0.0, 58.42, 0.0, false}
+    };
+
     // =========================================================================
     // 20 MOONS (isDistanceKm = true, a in km, LDot in deg/century)
     // =========================================================================
@@ -536,6 +542,12 @@ namespace Astro {
         {3561300.0, 0.0, 0.0286, 0.0, 15.470, 0.0, 0.0, 165750.0, 0.0, 0.0, 0.0, 0.0, true}
     };
 
+    // Hyperion tumbles chaotically: no rotation model exists, the period is the mean one.
+    inline constexpr BodyData Hyperion = {
+        "Hyperion", 135.0, 1481010.0, 21.28, 13.0, 0.0,
+        {1481010.0, 0.0, 0.1230, 0.0, 0.430, 0.0, 0.0, 617919.0, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
     // Moons of Uranus
     inline constexpr BodyData Miranda = {
         "Miranda", 235.8, 129390.0, 1.41, 1.41, 0.0,
@@ -568,6 +580,17 @@ namespace Astro {
         {354800.0, 0.0, 0.000016, 0.0, 156.880, 0.0, 0.0, 2237366.0, 0.0, 0.0, 0.0, 0.0, true}
     };
 
+    inline constexpr BodyData Proteus = {
+        "Proteus", 210.0, 117647.0, 1.12, 1.12, 0.0,
+        {117647.0, 0.0, 0.0005, 0.0, 0.075, 0.0, 0.0, 11716550.0, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    // Nereid: the most eccentric known moon (e 0.75), 1.4 to 9.7 million km from Neptune.
+    inline constexpr BodyData Nereid = {
+        "Nereid", 170.0, 5513818.0, 360.13, 0.48, 0.0,
+        {5513818.0, 0.0, 0.7507, 0.0, 7.090, 0.0, 0.0, 36508.0, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
     // Moon of Pluto
     inline constexpr BodyData Charon = {
         "Charon", 606.0, 19591.0, 6.39, 6.39, 0.0,
@@ -575,8 +598,8 @@ namespace Astro {
     };
 
     // Distance beyond which HUD formats orbit radius in AU rather than km.
-    // Raised to 5M km so Saturn's outer moon Iapetus (3.56M km) reads in km.
-    inline constexpr double moonDistanceLimitKm = 5000000.0;
+    // Raised to 6M km so the outer moons Iapetus (3.56M km) and Nereid (5.51M km) read in km.
+    inline constexpr double moonDistanceLimitKm = 6000000.0;
 
     // --- Sky orientation ---
     //

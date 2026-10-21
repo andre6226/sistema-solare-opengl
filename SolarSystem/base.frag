@@ -11,6 +11,7 @@ const int BODY_SUN      = 1;
 const int BODY_RING     = 2;
 const int BODY_SKY      = 3;
 const int BODY_SUN_GLOW = 4;
+const int BODY_COMET_TAIL = 5;
 
 uniform int bodyType;
 
@@ -40,6 +41,15 @@ uniform float airless;
 // Earth only: cloud cover (grey = opacity, loaded linear), fixed to the ground.
 uniform sampler2D cloudTexture;
 uniform float hasClouds;
+// Earth only: city lights (Black Marble), and the north pole to find east and north.
+uniform sampler2D nightTexture;
+uniform float hasNight;
+uniform vec3 bodyPole;
+// Limb haze colour x strength; 0 for bodies without air worth drawing.
+uniform vec3 atmoColor;
+
+// Cloud tops over the ground, as a fraction of Earth's radius: ~8 km of 6,371.
+const float CLOUD_HEIGHT = 8.0 / 6371.0;
 
 // Radial extent of the ring annulus, as a fraction of the quad's half width.
 const float RING_INNER = 0.502;   // 70,750 km of the 140,920 km quad, see SolarSystem.hpp
@@ -62,6 +72,24 @@ void main() {
         float corona = pow(ndotv, 3.2) * 0.55;
         vec3 glowColor = mix(vec3(1.0, 0.55, 0.12), vec3(1.0, 0.96, 0.85), pow(ndotv, 1.6));
         FragColor = vec4(glowColor * corona, corona);
+        return;
+    }
+
+    if (bodyType == BODY_COMET_TAIL) {
+        // x from the coma's back edge (0) to the tail's end (1), the nucleus at
+        // parentRadius; y across, 0 on the axis. airless carries the activity (0-1).
+        float head = parentRadius;
+        float x = vTexCoord.x;
+        float y = abs(vTexCoord.y - 0.5) * 2.0;
+        float s = max(x - head, 0.0) / (1.0 - head);          // along the tail
+        float width = 0.04 + 0.96 * sqrt(s);
+        float tail = exp(-4.0 * s) * exp(-pow(y / width, 2.0) * 5.0) * smoothstep(0.0, 0.01, s);
+        // Coma radius over the quad's half width: 0.012 / 0.16 in SolarSystem::drawCometTail.
+        float r = length(vec2((x - head) / head, y / 0.075));
+        float coma = exp(-r * r * 3.0);
+        vec3 c = mix(vec3(1.0, 0.95, 0.85), vec3(0.55, 0.72, 1.0), smoothstep(0.0, 0.6, s)) * (0.5 * tail + 0.9 * coma);
+        float a = clamp(max(tail, coma), 0.0, 1.0) * airless;
+        FragColor = vec4(c * airless, a);
         return;
     }
 
@@ -196,12 +224,37 @@ void main() {
         // makes the oceans blue from space, thicker towards the limb.
         float water = (albedo.b > 1.5 * albedo.r && albedo.b > albedo.g && albedo.b < 0.05) ? 1.0 : 0.0;
         float cloud = texture(cloudTexture, vTexCoord).r;
+        // Cloud shadow: the cloud that hides the Sun from here sits CLOUD_HEIGHT up the
+        // ray towards it, so its map is read that far sunwards. The slant is capped
+        // where the Sun is about to set, so the shift stays 3 texels at most at noon
+        // to under 200 km at the terminator.
+        float cosZ = dot(normal, lightDir);
+        vec3 east = cross(bodyPole, normal);
+        float cosLat = length(east);
+        vec3 slant = (lightDir - normal * cosZ) / max(cosZ, 0.05) * CLOUD_HEIGHT;
+        vec2 shift = vec2(dot(slant, east / max(cosLat, 1e-3)) / (6.2831853 * max(cosLat, 0.05)),
+                          dot(slant, cross(normal, east / max(cosLat, 1e-3))) / 3.14159265);
+        float cloudShadow = (cosZ > 0.0) ? textureLod(cloudTexture, vTexCoord + shift, 2.0).r : 0.0;
+        vec3 ground = (ambient + diffuse * (1.0 - 0.55 * cloudShadow) + umbraLight) * albedo + specular * water * (1.0 - cloudShadow);
         vec3 light = ambient + diffuse + umbraLight;
-        color = mix(light * albedo + specular * water, light * vec3(0.92), cloud);
+        color = mix(ground, light * vec3(0.92), cloud);
         float mu = max(dot(normal, viewDir), 0.0);
         color += (diffuse + umbraLight) * vec3(0.010, 0.024, 0.065) * (1.0 + 2.0 * (1.0 - mu)) * (1.0 - 0.6 * cloud);
+        // City lights on the night side, fading through twilight, dimmed under cloud.
+        if (hasNight > 0.5) {
+            float dark = 1.0 - smoothstep(-0.10, 0.05, cosZ);
+            color += texture(nightTexture, vTexCoord).r * vec3(1.0, 0.72, 0.40) * 0.35 * dark * (1.0 - 0.85 * cloud);
+        }
     } else {
         color = (ambient + diffuse + umbraLight) * albedo + specular;
+    }
+
+    // Limb haze: air seen edge-on scatters sunlight, a thin rim brightest on the lit
+    // side that wraps a little past the terminator, where the high air still sees the Sun.
+    if (dot(atmoColor, atmoColor) > 0.0) {
+        float rim = pow(1.0 - max(dot(normal, viewDir), 0.0), 4.0);
+        float lit = smoothstep(-0.25, 0.35, dot(normal, lightDir)) * shadowFactor;
+        color += atmoColor * rim * lit;
     }
 
     FragColor = vec4(color, texColor.a);

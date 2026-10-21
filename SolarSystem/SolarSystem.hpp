@@ -15,6 +15,7 @@
 #include "OrbitRenderer.hpp"
 #include "Ephemeris.hpp"
 #include "IauRotation.hpp"
+#include "AsteroidBelt.hpp"
 
 class SolarSystem {
 private:
@@ -42,6 +43,8 @@ private:
     std::vector<CelestialBody*> transparentBodies;
 
     OrbitRenderer orbitRenderer;
+    AsteroidBelt belt{"resources/asteroid_belt.bin"};
+    CelestialBody* halley = nullptr;
 
     Ephemeris ephemeris{"resources/de440_1900_2200.bin"};
 
@@ -243,6 +246,7 @@ public:
 
         // True-scale solar corona around the Sun's 3D photosphere.
         drawSunGlow(locs, cameraPosition);
+        drawCometTail(locs, cameraPosition);
 
         if (transparentBodies.empty()) return;
 
@@ -261,6 +265,16 @@ public:
             body->drawSelf(locs);
         }
         glDepthMask(GL_TRUE);
+    }
+
+    void drawBelt(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& cameraPosition) const {
+        // Ecliptic J2000 to world: the same axes as Astro::icrfToWorld() before its obliquity turn.
+        static const glm::mat3 eclipticToWorld(1, 0, 0, 0, 0, -1, 0, 1, 0);
+        // A picture of the belt from outside it: seen from within, 58,000 dots would fill
+        // a sky where no asteroid is visible to the eye. Fades in from 3.3 to 6.7 AU.
+        const float fromSun = glm::length(cameraPosition - getSunPosition());
+        const float alpha = std::clamp((fromSun - 5.0e8f) / 5.0e8f, 0.0f, 1.0f);
+        if (alpha > 0.0f) belt.draw(view, projection, getSunPosition(), Astro::unixToJulianDateTdb(simTimeSeconds), eclipticToWorld, alpha);
     }
 
     void toggleOrbitLines() { orbitRenderer.toggle(); }
@@ -387,6 +401,48 @@ private:
         glDepthMask(GL_TRUE);
     }
 
+    // Halley's coma and tail: a quad from the nucleus away from the Sun, turned to face
+    // the camera. Sizes follow the 1986 apparition: the gas starts to stream near 3 AU,
+    // the tail reaches ~10 million km at 1 AU and grows as the inverse square of the
+    // distance. shortcut: straight and anti-solar, no dust curvature, no ion/dust split.
+    void drawCometTail(const UniformLocations& locs, const glm::vec3& cameraPosition) {
+        if (!halley || !sun) return;
+        const glm::vec3 head = halley->getWorldPosition();
+        const glm::vec3 fromSun = head - sun->getWorldPosition();
+        const float rAu = glm::length(fromSun) / 1.495978707e8f;
+        const float activity = std::clamp((3.0f - rAu) / 1.5f, 0.0f, 1.0f);
+        if (activity <= 0.0f) return;
+
+        const float length = std::min(1.0e7f / (rAu * rAu), 3.0e7f);
+        const float coma = 0.012f * length;                      // ~1e5 km at 1 AU
+        const glm::vec3 axis = fromSun / glm::length(fromSun);
+        glm::vec3 side = glm::cross(axis, cameraPosition - head);
+        if (glm::dot(side, side) < 1e-12f) side = glm::cross(axis, glm::vec3(0.0f, 1.0f, 0.0f));
+        side = glm::normalize(side);
+        const float halfLength = 0.5f * (length + coma);
+        const float halfWidth = 0.16f * length;
+        // Quad x runs from the coma's back edge (-1) to the tail's end (+1), z across.
+        glm::mat4 model(1.0f);
+        model[0] = glm::vec4(axis * halfLength, 0.0f);
+        model[1] = glm::vec4(glm::cross(side, axis), 0.0f);
+        model[2] = glm::vec4(side * halfWidth, 0.0f);
+        model[3] = glm::vec4(head + axis * (halfLength - coma), 1.0f);
+        const glm::mat3 identityNormal(1.0f);
+
+        glDepthMask(GL_FALSE);
+        glDisable(GL_CULL_FACE);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        glUniformMatrix4fv(locs.model, 1, GL_FALSE, &model[0][0]);
+        glUniformMatrix3fv(locs.normalMatrix, 1, GL_FALSE, &identityNormal[0][0]);
+        glUniform1i(locs.bodyType, static_cast<int>(BodyType::CometTail));
+        glUniform1f(locs.parentRadius, coma / (length + coma));   // where the nucleus sits along the quad
+        glUniform1f(locs.airless, activity);
+        ringGeometry.draw();
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
+    }
+
     void linkBody(CelestialBody* body, const Astro::BodyData& data, bool shapeModel) {
         static const std::pair<const Astro::BodyData*, Ephemeris::Item> deBodies[] = {
             {&Astro::Mercury, Ephemeris::Mercury}, {&Astro::Venus, Ephemeris::Venus},
@@ -400,7 +456,7 @@ private:
             if (d == &data) link.deItem = item;
         }
         for (const Astro::BodyData* d : {&Astro::Ceres, &Astro::Pallas, &Astro::Vesta, &Astro::Ida, &Astro::Eros,
-                                         &Astro::Gaspra, &Astro::Haumea, &Astro::Eris, &Astro::Makemake}) {
+                                         &Astro::Gaspra, &Astro::Haumea, &Astro::Eris, &Astro::Makemake, &Astro::Halley}) {
             if (d == &data) link.moonTable = std::make_shared<MoonTable>(std::string("resources/bodies/") + data.name + ".bin");
         }
         for (const Astro::IauBody& iau : Astro::iauBodies()) {
@@ -575,16 +631,20 @@ private:
 
         // --- INNER PLANETS AND ASTEROID ---
         createBody(Astro::Mercury, sun);
-        createBody(Astro::Venus, sun);
+        // Limb haze, colour x strength: Venus's thick sulphuric haze, Mars's thin dusty air.
+        createBody(Astro::Venus, sun)->setAtmosphere(glm::vec3(1.0f, 0.90f, 0.65f) * 0.55f);
 
         CelestialBody* earth = createBody(Astro::Earth, sun);
         earth->setTiltChildren(false); // the Moon follows the ecliptic, not Earth's equator
         earth->setClouds(loadTexture("resources/EarthClouds.jpg", false));
+        earth->setNight(loadTexture("resources/EarthNight.jpg"));
+        earth->setAtmosphere(glm::vec3(0.30f, 0.55f, 1.0f) * 0.45f);
         createBody(Astro::Moon, earth);
 
         createBody(Astro::Eros, sun, loadShape("resources/models/Eros.obj"));
 
         CelestialBody* mars = createBody(Astro::Mars, sun);
+        mars->setAtmosphere(glm::vec3(0.95f, 0.62f, 0.42f) * 0.18f);
         createBody(Astro::Phobos, mars, loadShape("resources/models/Phobos.tab"));
         createBody(Astro::Deimos, mars, loadShape("resources/models/Deimos.tab"));
 
@@ -615,6 +675,7 @@ private:
         createBody(Astro::Rhea, saturn);
         createBody(Astro::Titan, saturn);
         createBody(Astro::Iapetus, saturn);
+        createBody(Astro::Hyperion, saturn)->setRadii(glm::vec3(180.1f, 102.7f, 133.0f));   // pck00011, mesh x, z, y
 
         // --- SATURN'S RINGS ---
         auto rings = std::make_unique<CelestialBody>(
@@ -635,6 +696,8 @@ private:
 
         // --- MOON OF NEPTUNE ---
         createBody(Astro::Triton, neptune);
+        createBody(Astro::Proteus, neptune);
+        createBody(Astro::Nereid, neptune);
 
         // --- OUTER DWARF PLANETS AND MOONS ---
         CelestialBody* pluto = createBody(Astro::Pluto, sun);
@@ -643,6 +706,10 @@ private:
         createBody(Astro::Haumea, sun);
         createBody(Astro::Makemake, sun);
         createBody(Astro::Eris, sun);
+
+        // Nucleus 7.65 x 3.6 x 3.6 km, long axis along mesh x.
+        halley = createBody(Astro::Halley, sun);
+        halley->setRadii(glm::vec3(7.65f, 3.6f, 3.6f));
     }
 
     void moveToSibling(int direction) {

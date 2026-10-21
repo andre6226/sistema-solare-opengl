@@ -58,7 +58,8 @@ def evaluate(coeffs, start, seg, t):
 SAMPLING = {'Phobos': (2, 14), 'Deimos': (2, 14), 'Io': (1, 12), 'Europa': (1, 12), 'Ganymede': (0.25, 8),
             'Callisto': (0.25, 12), 'Mimas': (0.5, 8), 'Enceladus': (1, 12), 'Tethys': (1, 12), 'Dione': (1, 12), 'Rhea': (1, 12),
             'Titan': (0.5, 10), 'Iapetus': (0.125, 12), 'Miranda': (1, 10), 'Ariel': (1, 14), 'Umbriel': (1, 12),
-            'Titania': (0.5, 10), 'Oberon': (0.5, 12), 'Triton': (1, 8), 'Charon': (2, 8)}
+            'Titania': (0.5, 10), 'Oberon': (0.5, 12), 'Triton': (1, 8), 'Charon': (2, 8),
+            'Hyperion': (0.25, 14), 'Proteus': (1, 12), 'Nereid': (1 / 64, 12)}
 
 
 def build(cache, moon, p, out_dir):

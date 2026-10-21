@@ -27,6 +27,8 @@ MOONS = [('Phobos', 401, 499, 0.3187, 317.7, 52.9), ('Deimos', 402, 499, 1.2625,
          ('Miranda', 705, 799, 1.4135, 257.3, -15.2), ('Ariel', 701, 799, 2.5204, 257.3, -15.2),
          ('Umbriel', 702, 799, 4.1442, 257.3, -15.2), ('Titania', 703, 799, 8.7059, 257.3, -15.2),
          ('Oberon', 704, 799, 13.4632, 257.3, -15.2), ('Triton', 801, 899, 5.8770, 299.8, 43.1),
+         ('Hyperion', 607, 699, 21.2766, 36.4, 84.0), ('Proteus', 808, 899, 1.1223, 299.4, 43.0),
+         ('Nereid', 802, 899, 360.13, 270.0, 66.6),
          ('Charon', 901, 999, 6.3872, 133.0, -6.2)]
 
 
@@ -157,6 +159,10 @@ def lam_terms(p, t):
     return lam
 
 
+# Starting eccentricity where a near-circle never converges.
+START_E = {'Nereid': 0.75}
+
+
 def fit_moon(cache, name, target, centre, period, ra0, dec0):
     stages = [(JD_FIRST, 30 * period, 1500), (JD_FIRST, 730.0, 3000), (JD_FIRST, 365.25 * 30, 6000),
               (JD_FIRST, JD_LAST - JD_FIRST, 12000), (JD_1900, JD_LAST - JD_1900, 18000)]
@@ -166,9 +172,11 @@ def fit_moon(cache, name, target, centre, period, ra0, dec0):
         a = np.median(np.linalg.norm(xyz, axis=1))
         if p is None:
             best = None
-            for lam0 in np.linspace(0, 2 * np.pi, 12, endpoint=False):
-                for pq in ([0.01, 0.01], [3.0, 3.0]):    # prograde and retrograde starts
-                    trial = fit(np.array([np.radians(ra0), np.radians(dec0), a, 0.001, 0.001, 0.0, *pq, 0.0, lam0,
+            e0 = START_E.get(name, 0.0)
+            hks = [(0.001, 0.001)] if e0 == 0.0 else [(e0 * np.sin(w), e0 * np.cos(w)) for w in np.linspace(0, 2 * np.pi, 12, endpoint=False)]
+            for lam0, hk, pq in [(l, hk, pq) for l in np.linspace(0, 2 * np.pi, 12, endpoint=False) for hk in hks
+                                 for pq in ([0.01, 0.01], [3.0, 3.0])]:    # prograde and retrograde starts
+                    trial = fit(np.array([np.radians(ra0), np.radians(dec0), a / (1 + e0 * e0 / 2), *hk, 0.0, *pq, 0.0, lam0,
                                           2 * np.pi / period, 0.0]), t, xyz, a, free_pole=False)
                     err = errors_deg(trial, t, xyz).max()
                     if best is None or err < best[0]:

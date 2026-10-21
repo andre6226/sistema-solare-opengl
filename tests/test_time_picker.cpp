@@ -196,7 +196,11 @@ int main() {
                                   MoonCheck{"Titania", 2504062.354417, -179155.364, -67403.999, 393223.505},
                                   MoonCheck{"Oberon", 2509809.915588, 260537.176, 83640.295, -514680.152},
                                   MoonCheck{"Triton", 2515557.476760, 209606.852, 282114.469, -47959.890},
-                                  MoonCheck{"Charon", 2521305.037931, 9140.228, 6099.864, -16224.129}}) {
+                                  MoonCheck{"Charon", 2521305.037931, 9140.228, 6099.864, -16224.129},
+                                  MoonCheck{"Hyperion", 2420000.123, -1201004.484, -585016.214, 130579.231},
+                                  MoonCheck{"Proteus", 2470000.371, 60684.883, -54553.200, -84728.111},
+                                  MoonCheck{"Nereid", 2500000.6, 4593619.233, 3329112.974, 2039225.231},
+                                  MoonCheck{"Nereid", 2433500.25, 2408248.978, 8227790.643, 4408314.831}}) {
             for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
                 if (std::string(s.name) != c.name) continue;
                 const Astro::KeplerianBasis b = Astro::satelliteBasis(s, c.jd - Astro::J2000_EPOCH_JD);
@@ -206,7 +210,7 @@ int main() {
                 ++moonsChecked;
             }
         }
-        assert(moonsChecked == 20);
+        assert(moonsChecked == 24);
 
         // Pluto's centre: DE440's Pluto-Charon barycentre minus Charon's pull (as in
         // SolarSystem::plutoCentreOffset), against JPL Horizons body 999: within 1 km.
@@ -234,7 +238,9 @@ int main() {
                                   BodyCheck{&Astro::Gaspra, 2476900.770000, -377755497.563, 31385594.706, -15148267.217},
                                   BodyCheck{&Astro::Haumea, 2488921.270000, 3212123512.326, -4141037029.736, -1971658775.260},
                                   BodyCheck{&Astro::Eris, 2500941.770000, 6375868801.281, 6675202882.429, 6302981683.622},
-                                  BodyCheck{&Astro::Makemake, 2512962.270000, 4900546273.837, -195445917.756, -3154151491.973}}) {
+                                  BodyCheck{&Astro::Makemake, 2512962.270000, 4900546273.837, -195445917.756, -3154151491.973},
+                                  BodyCheck{&Astro::Halley, 2446470.8, 50111949.728, -72019365.066, -4035751.484},   // perihelion 1986
+                                  BodyCheck{&Astro::Halley, 2418000.4, -174233512.009, 1200488793.779, 249558487.450}}) {
             const glm::dvec3 p = MoonTable(std::string("resources/bodies/") + c.body->name + ".bin").offset(c.jd)
                 - eph.evaluate(Ephemeris::Sun, c.jd).position;
             assert(glm::length(p - glm::dvec3(c.x, c.y, c.z)) < 1.0);

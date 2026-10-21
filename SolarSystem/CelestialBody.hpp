@@ -19,7 +19,8 @@ enum class BodyType : int {
     Sun     = 1,  // emissive photosphere with overexposed glare
     Ring    = 2,  // annulus carved out of a quad, receives the parent's shadow
     Sky     = 3,  // background star sphere, unlit at infinity
-    SunGlow = 4   // radial solar corona and glare halo
+    SunGlow = 4,  // radial solar corona and glare halo
+    CometTail = 5 // additive coma and tail, a quad facing the camera
 };
 
 class CelestialBody {
@@ -42,6 +43,8 @@ private:
     bool hasPole = false;
     bool airless = false;            // shaded as regolith (Lommel-Seeliger), not Lambert
     Texture* clouds = nullptr;       // Earth's cloud cover, drawn over its surface
+    Texture* night = nullptr;        // Earth's city lights, on the dark side
+    glm::vec3 atmosphere{0.0f};      // limb haze colour x strength, 0 = no air
     glm::dmat3 bodyFrame{1.0};         // mesh axes to world, with the spin
     glm::dmat3 equatorFrame{1.0};      // same without the spin: the frame rings and tilted moons use
     glm::vec3 shape{1.0f};             // per-axis radius over `scale`, mesh axes
@@ -181,6 +184,8 @@ public:
     // Triaxial radii along the mesh axes, km; `scale` becomes the largest.
     void setAirless(bool value) { airless = value; }
     void setClouds(Texture* map) { clouds = map; }
+    void setNight(Texture* map) { night = map; }
+    void setAtmosphere(const glm::vec3& haze) { atmosphere = haze; }
 
     void setRadii(const glm::vec3& radii) {
         scale = std::max(radii.x, std::max(radii.y, radii.z));
@@ -215,9 +220,17 @@ public:
                     }
                 }
             } else {
+                // The planet, then the other moons: mutual eclipses, a moon's shadow on its neighbour.
                 casterPos[0] = parent->getWorldPosition();
                 casterRadius[0] = parent->getScale();
                 casterCount = 1;
+                for (const CelestialBody* sat : parent->satellites) {
+                    if (sat != this && sat->isNavigable() && casterCount < 8) {
+                        casterPos[casterCount] = sat->getWorldPosition();
+                        casterRadius[casterCount] = sat->getScale();
+                        casterCount++;
+                    }
+                }
             }
         }
 
@@ -246,6 +259,12 @@ public:
 
         glUniform1f(locs.hasClouds, clouds != nullptr ? 1.0f : 0.0f);
         if (clouds != nullptr) clouds->bind(2);
+        glUniform1f(locs.hasNight, night != nullptr ? 1.0f : 0.0f);
+        if (night != nullptr) night->bind(3);
+        const glm::vec3 pole = glm::normalize(exactOrientation[1]);   // mesh +Y = north
+        glUniform3fv(locs.bodyPole, 1, &pole[0]);
+        const glm::vec3 haze = (type == BodyType::Planet) ? atmosphere : glm::vec3(0.0f);
+        glUniform3fv(locs.atmoColor, 1, &haze[0]);
 
         if (texture != nullptr) {
             texture->bind(0);

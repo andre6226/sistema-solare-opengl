@@ -26,14 +26,16 @@ BODIES = [('Ceres', '1;', 1, (8, 16, 32, 64)), ('Pallas', '2;', 1, (8, 16, 32, 6
           ('Vesta', '4;', 1, (8, 16, 32, 64)), ('Ida', '243;', 1, (8, 16, 32, 64)),
           ('Eros', '433;', 1, (8, 16, 32, 64)), ('Gaspra', '951;', 1, (8, 16, 32, 64)),
           ('Haumea', '136108;', 8, (256, 512, 1024, 2048)), ('Eris', '136199;', 8, (256, 512, 1024, 2048)),
-          ('Makemake', '136472;', 8, (256, 512, 1024, 2048))]
+          ('Makemake', '136472;', 8, (256, 512, 1024, 2048)),
+          # JPL's 1P solution #75; inside 0.6 AU of the Sun a day is too coarse to sample.
+          ('Halley', 'DES=1P;CAP;NOFRAG', 0.25, (2, 4, 8, 16, 32))]
 
 
 def build(cache, body, out_dir):
     name, target, step, segs = body
     total = int(np.ceil((JD_STOP - JD_START) / step)) + 1   # last sample on or after JD_STOP
     t, r = [], []
-    chunk = CHUNK_DAYS // step
+    chunk = int(CHUNK_DAYS / step)
     for first in range(0, total, chunk):
         n = min(chunk, total - first)
         a = JD_START + first * step

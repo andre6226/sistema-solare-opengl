@@ -19,8 +19,10 @@ or will be, turned the way it really faces.
 | Clock (UTC ↔ TT) | ΔT measured by USNO, 1900–2026 | — | exact for the past, a forecast after 2026 |
 | Poles, spin, shape | IAU WGCCRE 2015 (NAIF `pck00011.tpc`) | — | oblate Saturn, Jupiter, Earth; real prime meridians |
 | Moon's orientation | DE440 lunar librations | — | the near side faces Earth, with libration |
-| 20 planetary moons | JPL satellite ephemerides (Horizons) | JPL samples the tables never saw, 1900–2200 | mean orbit + correction tables: **< 1 km** for every moon (worst: Miranda, 0.92 km), 145 MB |
+| 23 planetary moons | JPL satellite ephemerides (Horizons) | JPL samples the tables never saw, 1900–2200 | mean orbit + correction tables: **< 1 km** for every moon (worst: Miranda, 0.92 km), 159 MB |
 | Asteroids and dwarf planets (Ceres, Pallas, Vesta, Ida, Eros, Gaspra, Haumea, Eris, Makemake) | JPL small-body ephemerides (Horizons) | 20 short JPL requests per body the tables never saw, 1900–2200 | **< 0.3 km**, median tens of metres, 2 MB |
+| Comet 1P/Halley | JPL small-body ephemeris, solution #75 with non-gravitational forces (Horizons) | 2 JPL positions off the table grid (perihelion 1986, 1908) | **< 0.6 km**, 2.6 MB |
+| Main asteroid belt | osculating elements of the ~58,000 numbered main-belt asteroids brighter than H 15 (JPL Small-Body Database) | — | Kepler orbits about the Sun: a picture of the belt, not an ephemeris |
 | Saturn's rings | texture measured on the Cassini division and Encke gap | — | C ring to F ring at the real radii |
 
 **The one thing no model fixes:** after 2026 the time shown is UTC predicted
@@ -141,6 +143,11 @@ is mapped on a log scale, as the eye sees it next to an umbra ~10,000 times
 darker: otherwise the sliver of a partial eclipse, lit by 0.04–3% of the Sun,
 would look black.
 
+Moons also shade each other. Every moon takes its planet and its sister moons as
+casters, so a moon's shadow falls on its neighbour: around Jupiter's equinox in
+2021 Io's shadow crossed Europa every 3.55 days, from late March to early June,
+most centrally on 2021-04-25 at 11:24 UTC (`mutual_io_europa` in the visual tests).
+
 ### How surfaces take light
 
 Bodies without an atmosphere worth the name (Mercury, the Moon and every other
@@ -201,6 +208,17 @@ ship, so each moon is stored in two layers:
 Orbit lines are drawn from the mean orbit; the body itself gets mean orbit +
 correction.
 
+Three moons stretch the scheme. Hyperion tumbles chaotically and is locked in a
+4:3 resonance with Titan: its mean orbit misses JPL by up to 17°, so its table
+carries corrections of several hundred thousand km, in 5-day segments (2.5 MB,
+0.37 km). Nereid's orbit is the most eccentric of any known moon (e 0.75, 1.4 to
+9.7 million km from Neptune): the fit only converges when it starts from that
+eccentricity, and its table runs in 5.6-day segments to keep up at periapsis
+(0.18 km). Proteus, 210 km across and 118,000 km out, needs a segment per orbit
+(9.4 MB). Hyperion and Nereid have no rotation model: Hyperion spins on its mean
+13 days, Nereid on the 11.5 hours Kepler measured. Their maps, and Proteus's, are
+one even colour from their albedo: no spacecraft mapped them whole.
+
 ### Asteroids and dwarf planets
 
 They are not in DE440, so their positions come from JPL's small-body
@@ -213,6 +231,22 @@ Sun: heliocentric positions carry the Sun's own wobble (Mercury alone moves it
 these orbits on request, and one request spanning centuries drifts by up to
 15 km, so the samples come in requests of at most 10,000 days. The fixed Kepler
 ellipses these tables replace were off by tens of degrees (Ceres by 80° in 2026).
+
+### Comet Halley and the asteroid belt
+
+Halley moves on JPL's own solution, non-gravitational forces included, sampled
+every 6 hours: inside 0.6 AU of the Sun a day is too coarse to fit. Its nucleus is
+a 15 x 7 x 7 km ellipsoid and as dark as coal. From 3 AU in, a coma and a tail grow
+away from the Sun, about 10 million km long at 1 AU and longer as the inverse square
+of the distance. The tail is straight and points straight away from the Sun: no
+curved dust tail, no separate ion tail.
+
+The main belt is ~58,000 points, one per numbered asteroid brighter than H 15 (all
+the ones larger than about 3 km), each on its own Kepler ellipse solved on the GPU.
+No planet perturbs them, so they drift a few degrees per century from the real
+asteroids. They show only from outside the belt, fading in from 3.3 to 6.7 AU from
+the Sun: from within it, 58,000 dots would fill a sky where no asteroid can be seen
+with the naked eye.
 
 ### Orbit lines
 
@@ -237,11 +271,22 @@ radius, and the light left is what the ring texture lets through there. The
 shadow edges are sharp; the Sun's disc would blur them by about 100 km.
 
 
-## Earth's clouds
+## Earth's clouds, lights and air
 
 The Blue Marble cloud map lies over a cloud-free surface, fixed to the ground. Only
 open water glints, and a Rayleigh haze, thicker towards the limb, turns the oceans
-blue.
+blue. Each cloud casts its shadow from 8 km up: the map is read again shifted
+towards the Sun, by a texel at most at noon and up to 200 km where the Sun is
+setting.
+
+On the night side the city lights of the Black Marble (2016, Suomi NPP VIIRS) fade
+in through twilight, dimmed under cloud. In that map the moonlit ground is blue and
+the lights are yellow, so the lights are what is redder than blue.
+
+Earth, Venus and Mars have a lit rim of air at the limb, brightest on the day side
+and reaching a little past the terminator, where the high air still sees the Sun.
+It is blue on Earth, pale yellow and thick on Venus (whose map shows its cloud tops),
+thin and dusty orange on Mars.
 
 ## Regenerating the data
 
@@ -255,7 +300,8 @@ in `tools/`, from public files:
 | `tools/satellite_fit.py` | Horizons API | `SolarSystem/SatelliteOrbits.hpp` |
 | `tools/satellite_tables.py` | Horizons API | `resources/moons/*.bin` |
 | `tools/smallbody_tables.py` | Horizons API | `resources/bodies/*.bin` |
-| `tools/moon_textures.py` | Blue Marble surface and clouds (NASA Earth Observatory), LRO colour Moon (NASA SVS CGI Moon Kit), USGS global mosaics of Io, Europa, Ganymede, Callisto, Enceladus, Tethys, Phobos | `resources/{Earth,EarthClouds,Moon,Io,...}.jpg` |
+| `tools/asteroid_belt.py` | JPL Small-Body Database query API | `resources/asteroid_belt.bin` |
+| `tools/moon_textures.py` | Blue Marble surface and clouds, Black Marble 2016 night lights (NASA Earth Observatory), LRO colour Moon (NASA SVS CGI Moon Kit), USGS global mosaics of Io, Europa, Ganymede, Callisto, Enceladus, Tethys, Phobos | `resources/{Earth,EarthClouds,EarthNight,Moon,Io,...}.jpg`, plus the plain maps of Hyperion, Proteus, Nereid and Halley |
 | `tools/asteroid_texture.py` | Dawn FC global mosaics of Ceres and Vesta (`planetarymaps.usgs.gov/mosaic/`), NEAR MSI global basemap of Eros (PDS Small Bodies Node) | `resources/{Ceres,Vesta,Eros}.jpg` |
 
 ## Tests
@@ -281,7 +327,8 @@ The maps of Ceres and Vesta are Dawn Framing Camera global mosaics by DLR
 (NASA/JPL-Caltech/UCLA/MPS/DLR/IDA), distributed by the USGS Astrogeology Science
 Center; Eros's is the NEAR Shoemaker MSI global basemap by M. Robinson
 (NASA/JHUAPL), from the PDS Small Bodies Node. Earth's surface and clouds are
-NASA's Blue Marble (Reto Stöckli, NASA Earth Observatory), the Moon is the LRO
+NASA's Blue Marble (Reto Stöckli, NASA Earth Observatory), its night lights the
+Black Marble 2016 (NASA Earth Observatory, Suomi NPP VIIRS data), the Moon is the LRO
 colour map of NASA's SVS CGI Moon Kit (Ernie Wright), and the maps of Io, Europa,
 Ganymede, Callisto, Enceladus, Tethys and Phobos are Galileo, Voyager, Cassini and
 Viking global mosaics from the USGS Astrogeology Science Center.

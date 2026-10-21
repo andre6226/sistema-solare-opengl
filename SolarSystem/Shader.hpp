@@ -146,4 +146,7 @@ struct UniformLocations {
     GLint casterHasAtmosphere;
     GLint airless;
     GLint hasClouds;   // Earth only
+    GLint hasNight;    // Earth only: city lights
+    GLint bodyPole;    // Earth only: north pole, world axes
+    GLint atmoColor;   // limb haze colour, 0 = none
 };

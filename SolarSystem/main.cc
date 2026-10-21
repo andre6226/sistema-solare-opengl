@@ -110,6 +110,9 @@ int main(int argc, char** argv) {
         locs.casterHasAtmosphere = shader.uniformLocation("casterHasAtmosphere");
         locs.airless             = shader.uniformLocation("airless");
         locs.hasClouds          = shader.uniformLocation("hasClouds");
+        locs.hasNight           = shader.uniformLocation("hasNight");
+        locs.bodyPole           = shader.uniformLocation("bodyPole");
+        locs.atmoColor          = shader.uniformLocation("atmoColor");
 
         shader.use();
         // Sampler uniforms default to 0, so binding textures to GL_TEXTURE0
@@ -117,6 +120,7 @@ int main(int argc, char** argv) {
         glUniform1i(shader.uniformLocation("bodyTexture"), 0);
         glUniform1i(shader.uniformLocation("ringTexture"), 1);
         glUniform1i(shader.uniformLocation("cloudTexture"), 2);
+        glUniform1i(shader.uniformLocation("nightTexture"), 3);
         // The light never moves, so it is uploaded once rather than per frame.
         glUniform3fv(locs.lightPos, 1, &lightPosition[0]);
 
@@ -137,7 +141,9 @@ int main(int argc, char** argv) {
                 std::cerr << "unknown body for --focus: '" << focusArg << "'" << std::endl;
                 return 2;
             }
-            camera.setDirection(solarSystem.getSunPosition() - solarSystem.getTargetPosition(),
+            // From the Sun itself there is no Sun direction: keep the default one.
+            const glm::vec3 toSun = solarSystem.getSunPosition() - solarSystem.getTargetPosition();
+            camera.setDirection(glm::length(toSun) > 0.0f ? toSun : glm::vec3(0.0f, 0.0f, 1.0f),
                                 azimuthOffset, elevationOffset);
         }
         camera.focusOn(solarSystem.getTargetRadius());
@@ -243,6 +249,7 @@ int main(int argc, char** argv) {
             glUniform3fv(locs.cameraPos, 1, &cameraPosition[0]);
 
             solarSystem.draw(locs, cameraPosition);
+            solarSystem.drawBelt(viewMatrix, projectionMatrix, cameraPosition);
             solarSystem.drawOrbits(viewMatrix, projectionMatrix);
 
             HudFrame hudFrame;

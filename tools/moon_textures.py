@@ -14,6 +14,9 @@ Files expected in <download dir> (planetarymaps.usgs.gov/mosaic/ unless noted):
   Enceladus_Cassini_mosaic_global_110m.tif
   Tethys_Cassini_mosaic_global_293m.tif
   Phobos_Viking_Mosaic_40ppd_DLRcontrol.tif
+  BlackMarble_2016_3km.jpg         Black Marble 2016 night lights (.../imagerecords/144000/144898/)
+
+Sources missing from <download dir> are skipped, so one map can be rebuilt alone.
 
 Every output is simple cylindrical, east to the right, -180 deg at the left edge. The
 USGS GeoTIFFs of Europa, Ganymede and Callisto have their central meridian at 180 deg
@@ -68,6 +71,8 @@ def fill_gaps(a, valid):
 
 
 for name, f, width, roll, keep in JOBS:
+    if not os.path.exists(os.path.join(src, f)):
+        continue
     im = Image.open(os.path.join(src, f))
     grey = im.mode in ('L', 'I;16', 'F')
     im = im.convert('L' if grey else 'RGB').resize((width, width // 2), Image.LANCZOS)
@@ -89,7 +94,25 @@ for name, f, width, roll, keep in JOBS:
 # Clouds: white where cloudy, black where clear; the shader uses the grey level as opacity.
 # The composite keeps a faint imprint of the ground under clear sky (coastlines up to ~60
 # of 255): drawn over the real surface it shows every coast twice, so it is cut away.
-c = np.asarray(Image.open(os.path.join(src, 'cloud_combined_8192.tif')).convert('L').resize((8192, 4096), Image.LANCZOS), np.float32)
-c = Image.fromarray(np.clip((c - 40.0) * 255.0 / 215.0, 0, 255).astype(np.uint8))
-c.save(os.path.join(res, 'EarthClouds.jpg'), quality=95, optimize=True)   # lower, 8x8 JPEG blocks show in thin cloud
-print('EarthClouds done')
+if os.path.exists(os.path.join(src, 'cloud_combined_8192.tif')):
+  c = np.asarray(Image.open(os.path.join(src, 'cloud_combined_8192.tif')).convert('L').resize((8192, 4096), Image.LANCZOS), np.float32)
+  c = Image.fromarray(np.clip((c - 40.0) * 255.0 / 215.0, 0, 255).astype(np.uint8))
+  c.save(os.path.join(res, 'EarthClouds.jpg'), quality=95, optimize=True)   # lower, 8x8 JPEG blocks show in thin cloud
+  print('EarthClouds done')
+
+# Night lights: the Black Marble draws moonlit land and sea in blue under the lights, so
+# what is redder than blue is city light; the blue ground is cut away.
+if os.path.exists(os.path.join(src, 'BlackMarble_2016_3km.jpg')):
+    n = np.asarray(Image.open(os.path.join(src, 'BlackMarble_2016_3km.jpg')).resize((8192, 4096), Image.LANCZOS), np.float32)
+    r, b = n[..., 0], n[..., 2]
+    n = np.clip((r - 1.5 * np.maximum(b - r, 0) - 15) * 255 / 240, 0, 255)
+    Image.fromarray(n.astype(np.uint8)).save(os.path.join(res, 'EarthNight.jpg'), quality=90, optimize=True)
+    print('EarthNight done')
+
+# Bodies no spacecraft mapped whole: one even colour from their measured albedo and hue
+# (Hyperion reddish, Cassini; Proteus and Nereid grey, Voyager 2; Halley's coal-dark
+# nucleus, Giotto). An honest blank beats an invented surface.
+PLAIN = {'Hyperion': (150, 128, 108), 'Proteus': (92, 90, 88), 'Nereid': (110, 108, 105), 'Halley': (46, 43, 40)}
+for name, rgb in PLAIN.items():
+    Image.new('RGB', (256, 128), rgb).save(os.path.join(res, name + '.jpg'), quality=90)
+    print(name, 'done')

@@ -10,7 +10,7 @@ BODIES = [('Sun', 10), ('Mercury', 199), ('Venus', 299), ('Earth', 399), ('Mars'
           ('Callisto', 504), ('Saturn', 699), ('Mimas', 601), ('Enceladus', 602), ('Tethys', 603), ('Dione', 604),
           ('Rhea', 605), ('Titan', 606), ('Iapetus', 608), ('Uranus', 799), ('Miranda', 705),
           ('Ariel', 701), ('Umbriel', 702), ('Titania', 703), ('Oberon', 704), ('Neptune', 899),
-          ('Triton', 801), ('Pluto', 999), ('Charon', 901), ('Ceres', 2000001), ('Pallas', 2000002),
+          ('Triton', 801), ('Proteus', 808), ('Pluto', 999), ('Charon', 901), ('Ceres', 2000001), ('Pallas', 2000002),
           ('Vesta', 2000004), ('Eros', 2000433), ('Ida', 2431010), ('Gaspra', 9511010)]
 
 def parse(path):
