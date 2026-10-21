@@ -214,6 +214,8 @@ public:
         }
 
         glUniform1i(locs.shadowCasterCount, casterCount);
+        glUniform1f(locs.casterHasAtmosphere,
+                    (type == BodyType::Planet && parent != nullptr && parent->name == "Earth") ? 1.0f : 0.0f);
         if (casterCount > 0) {
             glUniform3fv(locs.shadowCasterPos, casterCount, &casterPos[0][0]);
             glUniform1fv(locs.shadowCasterRadius, casterCount, &casterRadius[0]);

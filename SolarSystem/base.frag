@@ -27,10 +27,22 @@ uniform float sunRadius;
 uniform int shadowCasterCount;
 uniform vec3 shadowCasterPos[8];
 uniform float shadowCasterRadius[8];
+// 1 when the single caster is Earth: its air widens the shadow and bends red light into it.
+uniform float casterHasAtmosphere;
 
 // Radial extent of the ring annulus, as a fraction of the quad's half width.
 const float RING_INNER = 0.502;   // 70,750 km of the 140,920 km quad, see SolarSystem.hpp
 const float RING_OUTER = 1.0;
+
+// Area shared by two discs of radii r1, r2 whose centres are d apart.
+float discOverlap(float r1, float r2, float d) {
+    if (d >= r1 + r2) return 0.0;
+    float rMin = min(r1, r2);
+    if (d <= abs(r1 - r2)) return 3.14159265 * rMin * rMin;
+    float a1 = acos(clamp((d * d + r1 * r1 - r2 * r2) / (2.0 * d * r1), -1.0, 1.0));
+    float a2 = acos(clamp((d * d + r2 * r2 - r1 * r1) / (2.0 * d * r2), -1.0, 1.0));
+    return r1 * r1 * (a1 - 0.5 * sin(2.0 * a1)) + r2 * r2 * (a2 - 0.5 * sin(2.0 * a2));
+}
 
 void main() {
     if (bodyType == BODY_SUN_GLOW) {
@@ -98,37 +110,34 @@ void main() {
 
     vec3 ambient = vec3(0.008);
 
-    // Dynamic Eclipse Shadowing (Solar & Lunar)
+    // Dynamic Eclipse Shadowing (Solar & Lunar): the fraction of the Sun's disc
+    // each caster leaves visible from this point, as angular discs on the sky.
     float shadowFactor = 1.0;
+    vec3 umbraLight = vec3(0.0);
     if (diff > 0.0) {
+        vec3 toSun = lightPos - vWorldPos;
+        float sunAngle = asin(min(sunRadius / length(toSun), 1.0));
         for (int i = 0; i < shadowCasterCount; ++i) {
-            vec3 casterPos = shadowCasterPos[i];
-            float casterRadius = shadowCasterRadius[i];
-            vec3 a = normalize(casterPos - lightPos);
-            float dSC = length(casterPos - lightPos);
-            vec3 v = vWorldPos - casterPos;
-            float z = dot(v, a);
-            if (z > 0.0) {
-                float tanUmbra = (sunRadius - casterRadius) / dSC;
-                float tanPenumbra = (sunRadius + casterRadius) / dSC;
-                float rUmbra = casterRadius - z * tanUmbra;
-                float rPenumbra = casterRadius + z * tanPenumbra;
-                vec3 vPerp = v - z * a;
-                float dPerpSq = dot(vPerp, vPerp);
-                if (dPerpSq < rPenumbra * rPenumbra) {
-                    float dPerp = sqrt(dPerpSq);
-                    float umbraBound = max(0.0, rUmbra);
-                    float s_i = smoothstep(umbraBound, rPenumbra, dPerp);
-                    if (rUmbra < 0.0) { // Annular eclipse
-                        float occultation = clamp((casterRadius * dSC) / (sunRadius * z), 0.0, 1.0);
-                        float sMin = 1.0 - (occultation * occultation);
-                        s_i = mix(sMin, 1.0, s_i);
-                    }
-                    shadowFactor *= s_i;
-                }
+            vec3 toCaster = shadowCasterPos[i] - vWorldPos;
+            if (dot(toCaster, toSun) <= 0.0) continue;
+            float radius = shadowCasterRadius[i];
+            // Danjon: Earth's lower atmosphere is opaque, its shadow is 1/85 wider.
+            if (casterHasAtmosphere > 0.5) radius *= 1.0 + 1.0 / 85.0;
+            float casterAngle = asin(min(radius / length(toCaster), 1.0));
+            float separation = 2.0 * asin(min(0.5 * length(normalize(toCaster) - normalize(toSun)), 1.0));
+            float hidden = discOverlap(sunAngle, casterAngle, separation) / (3.14159265 * sunAngle * sunAngle);
+            shadowFactor *= 1.0 - hidden;
+            if (casterHasAtmosphere > 0.5) {
+                // Sunlight refracted through Earth's limb: deep red at the axis, copper
+                // towards the umbra's edge. Far dimmer than sunlight, raised for the eye.
+                float edge = clamp(separation / max(casterAngle - sunAngle, 1e-6), 0.0, 1.0);
+                umbraLight += hidden * mix(vec3(0.10, 0.012, 0.003), vec3(0.24, 0.075, 0.022), edge * edge) * diff;
             }
         }
     }
+    // The visible fraction is linear light while the shading is in display space:
+    // encode it, or a sliver lit by 3% of the Sun would look black instead of bright.
+    shadowFactor = pow(shadowFactor, 1.0 / 2.2);
     diffuse *= shadowFactor;
     specular *= shadowFactor;
 
@@ -150,7 +159,7 @@ void main() {
         }
     }
 
-    vec3 color = (ambient + diffuse) * albedo + specular;
+    vec3 color = (ambient + diffuse + umbraLight) * albedo + specular;
 
     FragColor = vec4(color, texColor.a);
 }

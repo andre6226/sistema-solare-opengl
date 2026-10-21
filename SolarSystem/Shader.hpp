@@ -138,4 +138,5 @@ struct UniformLocations {
     GLint shadowCasterCount;
     GLint shadowCasterPos;
     GLint shadowCasterRadius;
+    GLint casterHasAtmosphere;
 };
