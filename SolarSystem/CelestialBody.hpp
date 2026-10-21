@@ -46,6 +46,9 @@ private:
     Texture* night = nullptr;        // Earth's city lights, on the dark side
     glm::vec3 atmosphere{0.0f};      // limb haze colour x strength, 0 = no air
     float limbSoftness = 0.0f;       // air above the radius that dims sunlight, over the radius
+    // Rings: where the texture starts and below which the ring is dust, as fractions of the
+    // outer radius (the quad's half width).
+    float ringInner = 0.5f, ringDustBelow = 0.0f;
     glm::dmat3 bodyFrame{1.0};         // mesh axes to world, with the spin
     glm::dmat3 equatorFrame{1.0};      // same without the spin: the frame rings and tilted moons use
     glm::vec3 shape{1.0f};             // per-axis radius over `scale`, mesh axes
@@ -188,6 +191,7 @@ public:
     void setNight(Texture* map) { night = map; }
     void setAtmosphere(const glm::vec3& haze) { atmosphere = haze; }
     void setLimbSoftness(float fraction) { limbSoftness = fraction; }
+    void setRingProfile(float inner, float dustBelow) { ringInner = inner; ringDustBelow = dustBelow; }
 
     void setRadii(const glm::vec3& radii) {
         scale = std::max(radii.x, std::max(radii.y, radii.z));
@@ -206,6 +210,8 @@ public:
             glUniform3fv(locs.parentCenter, 1, &parent->worldPosition[0]);
             glUniform1f(locs.parentRadius, parent->scale);
             glUniform1f(locs.parentPolarRadius, parent->scale * parent->shape.y);   // mesh +Y = pole
+            glUniform1f(locs.ringInner, ringInner);
+            glUniform1f(locs.ringDustBelow, ringDustBelow);
         }
 
         // Dynamic Eclipse Shadow Casters
@@ -260,6 +266,7 @@ public:
                 glUniform3fv(locs.ringCenter, 1, &worldPosition[0]);
                 glUniform3fv(locs.ringNormal, 1, &ringNormal[0]);
                 ringRadius = sat->scale;
+                glUniform1f(locs.ringInner, sat->ringInner);
                 sat->texture->bind(1);
             }
         }

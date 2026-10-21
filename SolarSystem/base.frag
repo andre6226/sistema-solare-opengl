@@ -59,7 +59,10 @@ uniform vec3 atmoColor;
 const float CLOUD_HEIGHT = 8.0 / 6371.0;
 
 // Radial extent of the ring annulus, as a fraction of the quad's half width.
-const float RING_INNER = 0.502;   // 70,750 km of the 140,920 km quad, see SolarSystem.hpp
+// Where each ring texture starts, and below which the ring is dust (forward-scattering),
+// as fractions of its outer radius: CelestialBody::setRingProfile.
+uniform float ringInner;
+uniform float ringDustBelow;
 const float RING_OUTER = 1.0;
 
 // Area shared by two discs of radii r1, r2 whose centres are d apart.
@@ -123,8 +126,8 @@ void main() {
         // Carve an annulus out of the quad and turn the radial distance into a
         // 1D lookup along the ring texture.
         float dist = length(vTexCoord - vec2(0.5, 0.5)) * 2.0;
-        outsideAnnulus = (dist < RING_INNER || dist > RING_OUTER);
-        uv = vec2(clamp((dist - RING_INNER) / (RING_OUTER - RING_INNER), 0.0, 1.0), 0.5);
+        outsideAnnulus = (dist < ringInner || dist > RING_OUTER);
+        uv = vec2(clamp((dist - ringInner) / (RING_OUTER - ringInner), 0.0, 1.0), 0.5);
     }
 
     // Sampled before any discard: texture() picks its mip level from the
@@ -133,7 +136,7 @@ void main() {
     vec4 texColor = texture(bodyTexture, uv);
 
     // The alpha test only concerns the rings.
-    if (isRing && (outsideAnnulus || texColor.a < 0.004)) {
+    if (isRing && (outsideAnnulus || texColor.a < 0.002)) {
         discard;
     }
 
@@ -229,10 +232,10 @@ void main() {
         vec3 toSun = normalize(lightPos - vWorldPos);
         float t = dot(ringCenter - vWorldPos, ringNormal) / dot(toSun, ringNormal);
         float r = length(vWorldPos + toSun * t - ringCenter) / ringOuterRadius;
-        vec4 ring = texture(ringTexture, vec2(clamp((r - RING_INNER) / (RING_OUTER - RING_INNER), 0.0, 1.0), 0.5));
+        vec4 ring = texture(ringTexture, vec2(clamp((r - ringInner) / (RING_OUTER - ringInner), 0.0, 1.0), 0.5));
         // Same cut as the ring pass: what it discards casts nothing.
-        bool opaque = ring.a >= 0.004;
-        if (t > 0.0 && r >= RING_INNER && r <= RING_OUTER && opaque) {
+        bool opaque = ring.a >= 0.002;
+        if (t > 0.0 && r >= ringInner && r <= RING_OUTER && opaque) {
             // Sunlight crosses the ring at a slant: e^-tau/mu0, darker the lower the Sun.
             float blocked = 1.0 - exp(log(max(1.0 - ring.a, 0.002)) / max(abs(dot(toSun, ringNormal)), 0.002));
             shadowFactor *= 1.0 - blocked;
@@ -277,8 +280,26 @@ void main() {
         // geometry the texture's colours stand for.
         float glow = mix(farFace, litFace, sameSide) / max(0.5 * (1.0 - exp(-4.0 * tau)), 1e-4);
         float seen = 1.0 - exp(-tau / mu);
-        // In Saturn's shadow, its dayside glow, ~1.5% of sunlight.
-        vec3 radiance = albedo * 1.2 * glow * a * mix(1.0, 0.015, inShadow) * sunlight;
+        // Phase: cos of the angle at the ring between Sun and eye. Packed icy particles
+        // brighten sharply with the Sun right behind the eye (opposition surge, ~40%
+        // within a few degrees); dust, micron grains, throws light forwards and only
+        // shows with the Sun nearly behind the ring, as the D ring in Cassini's backlit
+        // views: tens of times brighter there than at the reference geometry.
+        float phase = acos(clamp(dot(lightDir, viewDir), -1.0, 1.0));
+        float dust = step(length(vTexCoord - vec2(0.5)) * 2.0, ringDustBelow);
+        glow *= mix(1.0 + 0.4 * exp(-phase / 0.05), 0.3 + 40.0 * exp(-(3.14159265 - phase) / 0.15), dust);
+        // Saturnshine: the day side of the globe lights the rings from within their
+        // plane, on both faces alike: the planet's albedo (0.34) times the half of its
+        // disc above the ring plane and the share of it lit as seen from here, arriving
+        // at a grazing mean cosine of 0.42 R/d. A percent or two of sunlight near the
+        // globe, falling off as (R/d)^3.
+        float dc = max(length(o), parentRadius);
+        float planetLit = 0.5 * (1.0 + dot(-normalize(o), normalize(lightPos - parentCenter)));
+        float mu0s = 0.42 * parentRadius / dc;
+        float shine = 0.34 * planetLit * 0.5 * (parentRadius * parentRadius) / (dc * dc)
+                    * mu0s / (mu + mu0s) * (1.0 - exp(-tau * (1.0 / mu + 1.0 / mu0s))) / max(0.5 * (1.0 - exp(-4.0 * tau)), 1e-4);
+        // In Saturn's shadow, sunlight gives way to Saturnshine alone.
+        vec3 radiance = albedo * 1.2 * (glow * (1.0 - inShadow) + shine) * a * sunlight;
         FragColor = vec4(radiance / max(seen, 1e-3), seen);
         return;
     }

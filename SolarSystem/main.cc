@@ -115,6 +115,8 @@ int main(int argc, char** argv) {
         locs.ringCenter      = shader.uniformLocation("ringCenter");
         locs.ringNormal      = shader.uniformLocation("ringNormal");
         locs.ringOuterRadius = shader.uniformLocation("ringOuterRadius");
+        locs.ringInner       = shader.uniformLocation("ringInner");
+        locs.ringDustBelow   = shader.uniformLocation("ringDustBelow");
         locs.sunRadius          = shader.uniformLocation("sunRadius");
         locs.shadowCasterCount   = shader.uniformLocation("shadowCasterCount");
         locs.shadowCasterPos     = shader.uniformLocation("shadowCasterPos");

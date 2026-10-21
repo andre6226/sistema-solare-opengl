@@ -138,6 +138,8 @@ struct UniformLocations {
     GLint ringCenter;
     GLint ringNormal;
     GLint ringOuterRadius;
+    GLint ringInner;
+    GLint ringDustBelow;
 
     // Dynamic Eclipse Shadowing
     GLint sunRadius;

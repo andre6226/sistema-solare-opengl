@@ -61,9 +61,9 @@ private:
     std::vector<BodyLink> links;
     CelestialBody* saturnRings = nullptr;
 
-    // Outer edge of the ring texture, km: it runs from 70,750 km (inside the C ring)
-    // to the F ring, measured on the Cassini division and the Encke gap. base.frag
-    // keeps the inner 50.2% of the quad empty.
+    // Outer edge of the ring texture, km: it runs from 66,000 km (inside the D ring)
+    // to the F ring, measured on the Cassini division and the Encke gap; the ring's
+    // setRingProfile keeps the quad empty inside that.
     static constexpr float ringOuterRadiusKm = 140920.0f;
 
     void recenterOnTarget() {
@@ -707,6 +707,8 @@ private:
             "Saturn's Rings", loadTexture("resources/SaturnRings.png"), &ringGeometry,
             0.0f, 0.0f, 0.0f, 0.0f, ringOuterRadiusKm);
         rings->setType(BodyType::Ring);
+        // The texture from 66,000 km (the D ring, dust, to the C ring at 74,490 km): tools/ring_opacity.py.
+        rings->setRingProfile(66000.0f / ringOuterRadiusKm, 74490.0f / ringOuterRadiusKm);
         rings->setNavigable(false);
         saturnRings = rings.get();
         saturn->addSatellite(rings.get());

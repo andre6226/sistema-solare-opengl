@@ -23,7 +23,7 @@ or will be, turned the way it really faces.
 | Asteroids and dwarf planets (Ceres, Pallas, Vesta, Ida, Eros, Gaspra, Haumea, Eris, Makemake) | JPL small-body ephemerides (Horizons) | 20 short JPL requests per body the tables never saw, 1900–2200 | **< 0.3 km**, median tens of metres, 2 MB |
 | Comet 1P/Halley | JPL small-body ephemeris, solution #75 with non-gravitational forces (Horizons) | 2 JPL positions off the table grid (perihelion 1986, 1908) | **< 0.6 km**, 2.6 MB |
 | Main asteroid belt | osculating elements of the ~58,000 numbered main-belt asteroids brighter than H 15 (JPL Small-Body Database) | — | Kepler orbits about the Sun: a picture of the belt, not an ephemeris |
-| Saturn's rings | texture measured on the Cassini division and Encke gap; opacity from Cassini's radio occultation (PDS Rings Node, Rev 7, 10 km) | — | C ring to F ring at the real radii |
+| Saturn's rings | texture measured on the Cassini division and Encke gap; opacity from Cassini's radio occultation (PDS Rings Node, Rev 7, 10 km) | — | D ring to F ring at the real radii |
 
 **The one thing no model fixes:** Earth's rotation after 2026. UTC is kept as
 atomic time plus the leap seconds of IERS (37 s since 2017), and no more are
@@ -322,7 +322,8 @@ The ring texture was measured against the real ring system: the C ring's inner
 edge, the Cassini division, the Encke gap and the A ring's outer edge all land
 on a straight line in pixels. That puts the texture between 70,750 and
 140,920 km from Saturn's centre, from inside the C ring out to the F ring, and
-the rings are drawn at that size. They were 10% too small before.
+the rings are drawn at that size. They were 10% too small before. The texture is
+now resampled to start at 66,000 km, to hold the D ring.
 
 The texture's colours are kept, but its opacity is Cassini's: the normal optical
 depth τ from the radio occultation of 3 May 2005 (X band, 10 km resolution,
@@ -331,7 +332,7 @@ NASA PDS Rings Node CORSS_8001), turned into each texel's 1 − e^-τ by
 twice as opaque as they are (mean τ 0.18 and 0.22) and the A ring too (0.82). In
 the opaque core of the B ring the radio signal is lost and τ is set to 5. The
 profile is radio light, 3.6 cm, which only particles of centimetres and up
-block; in visible light dust adds a little, most in the A ring. The D ring, inside 74,490 km, is too faint to draw.
+block; in visible light dust adds a little, most in the A ring. The D ring, inside 74,490 km, is outside the profile: see below.
 
 They lie in Saturn's equator (its IAU pole) and cast their shadow on the globe:
 for each point of Saturn, the ray towards the Sun crosses the ring plane at some
@@ -355,7 +356,16 @@ as 1 − e^-τ(1/μ + 1/μ0), so as the Sun grazes the rings they fade out, and 
 2025 equinox they nearly vanish. From the face away from the Sun the rings only
 glow with the light that gets through them: the opaque B ring goes nearly black,
 the thin C ring and the Cassini division stay faintly bright, as in Cassini's views
-of the unlit side. Seen at a slant the rings also look more opaque, 1 − e^-τ/μ. Since the 2025 equinox the Sun lights the south face, so from the north
+of the unlit side. Seen at a slant the rings also look more opaque, 1 − e^-τ/μ.
+
+Three more effects of the particles. With the Sun right behind the eye the icy
+rings brighten by ~40% within a few degrees (the opposition surge). The D ring,
+66,900–74,490 km, is dust of micron grains with τ ~10⁻³ (stored as 1/255, the
+smallest an 8-bit texture holds): invisible but for the Sun nearly behind it,
+when dust throws light forwards tens of times brighter, as in Cassini's backlit
+views. And Saturn's day side lights the rings from within their plane, on both
+faces: a percent or two of sunlight near the globe, falling as (R/d)³, all the
+light the rings get inside Saturn's shadow. Since the 2025 equinox the Sun lights the south face, so from the north
 the rings look dark until 2039.
 
 

@@ -1,42 +1,56 @@
 """Opacity of resources/SaturnRings.png from Cassini's measured optical depth.
 
-    python3 tools/ring_opacity.py tools/ring_profile/RSS_2005_123_X43_E_TAU_10KM.TAB resources/SaturnRings.png
+    python3 tools/ring_opacity.py tools/ring_profile/RSS_2005_123_X43_E_TAU_10KM.TAB \
+        tools/ring_profile/SaturnRings_colour.png resources/SaturnRings.png
 
 Source: NASA PDS Rings Node, CORSS_8001, Rev007E_RSS_2005_123_X43_E (Cassini radio
 occultation, X band, 3 May 2005, 10 km resolution), pds-rings.seti.org/holdings/volumes/
 CORSS_8xxx/CORSS_8001/data/Rev007/Rev007E/Rev007E_RSS_2005_123_X43_E/. Each texel's alpha
 becomes the share of light a face-on ring blocks there, 1 - <e^-tau>, which is what
-base.frag reads tau back from. The colours stay; texels the old texture left dark but
-the profile fills (the C ring's inner edge) take the colour of the nearest lit texel.
+base.frag reads tau back from. The colours come from SaturnRings_colour.png, the ring
+texture as of commit d8f68b3 (70,742-140,920 km), resampled to the new span; texels it
+left dark but the profile fills (the C ring's inner edge, the D ring) take the colour of
+the nearest lit texel. The D ring, inside the C ring from 66,900 km, is outside the
+radio profile and gets its tau of ~1e-3 (Hedman et al. 2007).
 """
 import sys
 import numpy as np
 from PIL import Image
 
-INNER, OUTER = 0.502 * 140920.0, 140920.0   # the texture's span, base.frag RING_INNER
+INNER, OUTER = 66000.0, 140920.0             # the texture's span: SolarSystem.hpp setRingProfile
+COLOUR_INNER = 70742.0                       # SaturnRings_colour.png's span, to OUTER
+D_RING = (66900.0, 74490.0)
+# shortcut: an 8-bit alpha holds 1/255 at least, so the D ring's tau ~1e-3 is stored as
+# ~0.004; a 16-bit ring texture would fix it, and it only shows in forward scatter.
+TAU_D_RING = 0.004
 TAU_SATURATED = 5.0                          # where the signal is lost, the B ring core
 
-tab, png = sys.argv[1:3]
+tab, colour, png = sys.argv[1:4]
 radius, tau, threshold = np.loadtxt(tab, delimiter=',', usecols=(0, 6, 8)).T
 # Above the threshold the measured tau is noise: the ring is at least that opaque.
 tau = np.where(tau > threshold, TAU_SATURATED, np.clip(tau, 0.0, None))
 
-im = np.asarray(Image.open(png).convert('RGBA')).astype(float)
+im = np.asarray(Image.open(colour).convert('RGBA')).astype(float)
 h, w = im.shape[:2]
 edges = INNER + (OUTER - INNER) * np.arange(w + 1) / w
+centres = 0.5 * (edges[:-1] + edges[1:])
 alpha = np.zeros(w)
 for i in range(w):
     inside = (radius >= edges[i]) & (radius < edges[i + 1])
     if inside.any():
         alpha[i] = 1.0 - np.exp(-tau[inside]).mean()
+    elif D_RING[0] <= centres[i] < D_RING[1]:
+        alpha[i] = 1.0 - np.exp(-TAU_D_RING)
 
-rgb = im[..., :3].mean(axis=0)               # rows are identical: one colour per radius
+old = im[..., :3].mean(axis=0)               # rows are identical: one colour per radius
+oldCentres = COLOUR_INNER + (OUTER - COLOUR_INNER) * (np.arange(w) + 0.5) / w
+rgb = np.stack([np.interp(centres, oldCentres, old[:, k], left=0.0) for k in range(3)], axis=1)
 lit = np.flatnonzero(np.linalg.norm(rgb / 255.0, axis=1) >= 0.15)
 rgb = rgb[lit[np.abs(lit[None, :] - np.arange(w)[:, None]).argmin(axis=1)]]
 
 out = np.empty((h, w, 4), np.uint8)
 out[..., :3] = np.round(rgb)[None]
-out[..., 3] = np.round(255.0 * alpha)[None]
+out[..., 3] = np.maximum(np.round(255.0 * alpha), (alpha > 0) * 1.0)[None]   # the D ring keeps its 1/255
 Image.fromarray(out, 'RGBA').save(png)
 
 def mean_tau(r0, r1):
