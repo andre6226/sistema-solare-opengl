@@ -89,7 +89,7 @@ struct HudFrame {
     std::string targetName;
     std::string targetPath;
     const Astro::BodyData* data = nullptr;
-    const Astro::KeplerianBasis* orbit = nullptr;   // a small body's current osculating orbit
+    Astro::KeplerianBasis orbit{};   // a_km and periodDays where they change, else periodDays 0
     int satelliteCount = 0;
     float timeScale = 1.0f;
     float cameraDistance = 0.0f;
@@ -338,9 +338,9 @@ private:
 
         rows.emplace_back("RADIUS", formatKm(d->radiusKm));
 
-        if (frame.orbit != nullptr) {
-            rows.emplace_back("ORBIT RADIUS", formatDistance(frame.orbit->a_km));
-            rows.emplace_back("ORBITAL PERIOD", formatDays(frame.orbit->periodDays));
+        if (frame.orbit.periodDays > 0.0) {
+            rows.emplace_back("ORBIT RADIUS", formatDistance(frame.orbit.a_km));
+            rows.emplace_back("ORBITAL PERIOD", formatDays(frame.orbit.periodDays));
         } else {
             if (d->distanceFromParentKm > 0.0) {
                 rows.emplace_back("ORBIT RADIUS", formatDistance(d->distanceFromParentKm));

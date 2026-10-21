@@ -211,6 +211,29 @@ int main() {
             }
         }
         assert(moonsChecked == 24);
+        // Hyperion's HUD period (SolarSystem::getTargetOrbit): one turn on the real path,
+        // 21.28 d on average, a few tenths either way with Titan's tug; its osculating
+        // ellipse would say ~22 d.
+        for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
+            if (std::string(s.name) != "Hyperion") continue;
+            const MoonTable table("resources/moons/Hyperion.bin");
+            const auto at = [&](double jd) {
+                const Astro::KeplerianBasis b = Astro::satelliteBasis(s, jd - Astro::J2000_EPOCH_JD);
+                return Astro::evaluateOrbitVertex(b, b.E_rad) + table.offset(jd);
+            };
+            const double turn = glm::two_pi<double>() / s.meanMotion;
+            for (double jd = 2440000.0; jd < 2480000.0; jd += 1234.5) {
+                double swept = 0.0;
+                glm::dvec3 prev = at(jd - 0.5 * turn);
+                for (int k = 1; k <= 64; ++k) {
+                    const glm::dvec3 p = at(jd + (k / 64.0 - 0.5) * turn);
+                    swept += std::acos(std::clamp(glm::dot(glm::normalize(prev), glm::normalize(p)), -1.0, 1.0));
+                    prev = p;
+                }
+                assert(std::abs(turn * glm::two_pi<double>() / swept - 21.28) < 0.6);
+            }
+        }
+
         // Every moon's orbit line is drawn: none may reach the renderer with a <= 0.
         for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
             const Astro::KeplerianBasis b = Astro::satelliteBasis(s, 1234.5);

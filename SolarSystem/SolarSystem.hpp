@@ -151,14 +151,41 @@ public:
         return currentTarget ? currentTarget->getData() : nullptr;
     }
 
-    // For a comet, asteroid or dwarf planet, the ellipse its orbit line draws now:
-    // planetary encounters change their periods (Halley 75.5 -> 72.6 years in 2061).
-    // nullptr for planets and moons, whose mean periods mean more than osculating ones.
-    const Astro::KeplerianBasis* getTargetOrbit() const {
+    // The HUD's orbit radius and period where they change: for a comet, asteroid or
+    // dwarf planet those of the ellipse its line draws (Halley 75.5 -> 72.6 years at its
+    // 2061 passage). Hyperion and Nereid, pulled about by Titan and the Sun (fit errors
+    // ~16 deg against under 0.4 deg for the rest), are off any ellipse, osculating ones
+    // too (Hyperion's says 22.0 d for 21.3): they get the time one turn takes on the
+    // real path round now, and half its nearest plus farthest distance. periodDays 0 for everything else,
+    // whose mean values the HUD keeps.
+    Astro::KeplerianBasis getTargetOrbit() const {
         for (const BodyLink& link : links) {
-            if (link.body == currentTarget && link.moonTable != nullptr && link.moon == nullptr) return &currentTarget->getOrbitBasis();
+            if (link.body != currentTarget || link.moonTable == nullptr) continue;
+            if (link.moon == nullptr) return currentTarget->getOrbitBasis();
+            if (link.moon->fitErrorDeg < 1.0) break;
+            const double jd = Astro::unixToJulianDateTdb(simTimeSeconds), turn = glm::two_pi<double>() / link.moon->meanMotion;
+            const int steps = 64;
+            double swept = 0.0, nearest = 1e30, farthest = 0.0;
+            glm::dvec3 prev = moonPosition(link, jd - 0.5 * turn);
+            for (int k = 1; k <= steps; ++k) {
+                const glm::dvec3 p = moonPosition(link, jd + (k / double(steps) - 0.5) * turn);
+                swept += std::acos(std::clamp(glm::dot(glm::normalize(prev), glm::normalize(p)), -1.0, 1.0));
+                nearest = std::min(nearest, glm::length(p));
+                farthest = std::max(farthest, glm::length(p));
+                prev = p;
+            }
+            Astro::KeplerianBasis b{};
+            b.a_km = 0.5 * (nearest + farthest);
+            b.periodDays = turn * glm::two_pi<double>() / swept;
+            return b;
         }
-        return nullptr;
+        return Astro::KeplerianBasis{};
+    }
+
+    // A fitted moon's full JPL position, planetocentric ICRF km.
+    glm::dvec3 moonPosition(const BodyLink& link, double jdTdb) const {
+        const Astro::KeplerianBasis b = Astro::satelliteBasis(*link.moon, jdTdb - Astro::J2000_EPOCH_JD);
+        return Astro::evaluateOrbitVertex(b, b.E_rad) + link.moonTable->offset(jdTdb);
     }
 
     int getTargetSatelliteCount() const {
@@ -514,10 +541,7 @@ private:
             } else if (link.moon != nullptr) {
                 // shortcut: DE440 places each giant at its system barycentre, under 300 km
                 // from its centre (Pluto, 2,100 km off, is moved to its centre below).
-                const auto at = [&](double jd) {
-                    const Astro::KeplerianBasis b = Astro::satelliteBasis(*link.moon, jd - Astro::J2000_EPOCH_JD);
-                    return toWorld * (Astro::evaluateOrbitVertex(b, b.E_rad) + link.moonTable->offset(jd));
-                };
+                const auto at = [&](double jd) { return toWorld * moonPosition(link, jd); };
                 // The line is the osculating ellipse of the full JPL position, so it runs
                 // through the moon: the mean ellipse misses Hyperion, pulled about by Titan,
                 // by up to a quarter of its orbit. mu = n^2 a^3 of the fit keeps the line at

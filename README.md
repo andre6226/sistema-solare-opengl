@@ -275,8 +275,11 @@ between. Far out, the heliocentric ellipse of Halley breathed with Jupiter's
 it holds at 0.584 AU to 0.1%, and changes only at its passages among the planets.
 For these small bodies the HUD's orbit radius and period are those of the line,
 so they change with it: Halley's period drops from 75.5 to 72.6 years at its 2061
-passage, matching its predicted return in 2134. Planets and moons keep their mean
-values.
+passage, matching its predicted return in 2134. Hyperion and Nereid, which no
+ellipse follows, show the time one turn takes on their real path round the current
+date and half its nearest plus farthest distance: Hyperion's period runs 21.07 to
+21.44 days (1900-2200) with Titan's tug, where its osculating ellipse says 22. Planets and
+the other moons keep their mean values.
 
 ### Saturn's rings
 
