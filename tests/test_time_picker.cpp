@@ -5,6 +5,7 @@
 #include <tuple>
 #include "../SolarSystem/AstronomicalData.hpp"
 #include "../SolarSystem/Ephemeris.hpp"
+#include "../SolarSystem/Orbits.hpp"
 #include "../SolarSystem/Hud.hpp"
 #include "../SolarSystem/InputHandler.hpp"
 #include "../SolarSystem/Travel.hpp"
@@ -203,34 +204,21 @@ int main() {
                                   MoonCheck{"Nereid", 2433500.25, 2408248.978, 8227790.643, 4408314.831}}) {
             for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
                 if (std::string(s.name) != c.name) continue;
-                const Astro::KeplerianBasis b = Astro::satelliteBasis(s, c.jd - Astro::J2000_EPOCH_JD);
-                const glm::dvec3 p = Astro::evaluateOrbitVertex(b, b.E_rad)
-                    + MoonTable(std::string("resources/moons/") + c.name + ".bin").offset(c.jd);
+                const glm::dvec3 p = Orbits::moonPosition(s, MoonTable(std::string("resources/moons/") + c.name + ".bin"), c.jd);
                 assert(glm::length(p - glm::dvec3(c.x, c.y, c.z)) < 1.0);
                 ++moonsChecked;
             }
         }
         assert(moonsChecked == 24);
-        // Hyperion's HUD period (SolarSystem::getTargetOrbit): one turn on the real path,
-        // 21.28 d on average, a few tenths either way with Titan's tug; its osculating
-        // ellipse would say ~22 d.
+        // Hyperion's HUD period (Orbits::measuredTurn): one turn on the real path, 21.28 d
+        // on average, a few tenths either way with Titan's tug; its osculating ellipse
+        // would say ~22 d. The rest keep their mean values.
         for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
+            assert(Orbits::offAnyEllipse(s) == (std::string(s.name) == "Hyperion" || std::string(s.name) == "Nereid"));
             if (std::string(s.name) != "Hyperion") continue;
             const MoonTable table("resources/moons/Hyperion.bin");
-            const auto at = [&](double jd) {
-                const Astro::KeplerianBasis b = Astro::satelliteBasis(s, jd - Astro::J2000_EPOCH_JD);
-                return Astro::evaluateOrbitVertex(b, b.E_rad) + table.offset(jd);
-            };
-            const double turn = glm::two_pi<double>() / s.meanMotion;
             for (double jd = 2440000.0; jd < 2480000.0; jd += 1234.5) {
-                double swept = 0.0;
-                glm::dvec3 prev = at(jd - 0.5 * turn);
-                for (int k = 1; k <= 64; ++k) {
-                    const glm::dvec3 p = at(jd + (k / 64.0 - 0.5) * turn);
-                    swept += std::acos(std::clamp(glm::dot(glm::normalize(prev), glm::normalize(p)), -1.0, 1.0));
-                    prev = p;
-                }
-                assert(std::abs(turn * glm::two_pi<double>() / swept - 21.28) < 0.6);
+                assert(std::abs(Orbits::measuredTurn(s, table, jd).periodDays - 21.28) < 0.6);
             }
         }
 
@@ -240,19 +228,14 @@ int main() {
             assert(b.a_km > 0.0);
             assert(glm::length(Astro::evaluateOrbitVertex(b, b.E_rad)) >= 0.999 * b.a_km * (1.0 - b.e));   // never inside periapsis
         }
-        // The drawn line, the osculating ellipse of the full position (SolarSystem::applyEphemeris),
-        // passes through the moon and stays a closed ellipse, Hyperion included.
+        // The drawn line (Orbits::moonLine) passes through the moon and stays a closed
+        // ellipse, Hyperion included.
         for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
             const MoonTable table(std::string("resources/moons/") + s.name + ".bin");
-            const auto at = [&](double jd) {
-                const Astro::KeplerianBasis b = Astro::satelliteBasis(s, jd - Astro::J2000_EPOCH_JD);
-                return Astro::evaluateOrbitVertex(b, b.E_rad) + table.offset(jd);
-            };
-            const double jd = 2461335.5, dt = 1.0e-3, n = s.meanMotion / Astro::SECONDS_PER_DAY, a = std::abs(s.a);
-            const glm::dvec3 v = (at(jd + dt) - at(jd - dt)) / (2.0 * dt * Astro::SECONDS_PER_DAY);
-            const Astro::KeplerianBasis b = Astro::osculatingBasis(at(jd), v, n * n * a * a * a);
-            assert(glm::length(Astro::evaluateOrbitVertex(b, b.E_rad) - at(jd)) < 1.0);
-            assert(b.a_km > 0.5 * a && b.a_km < 2.0 * a && b.e < 0.9);
+            const double jd = 2461335.5;
+            const Astro::KeplerianBasis b = Orbits::moonLine(s, table, jd);
+            assert(glm::length(Astro::evaluateOrbitVertex(b, b.E_rad) - Orbits::moonPosition(s, table, jd)) < 1.0);
+            assert(b.a_km > 0.5 * std::abs(s.a) && b.a_km < 2.0 * std::abs(s.a) && b.e < 0.9);
         }
 
         // Pluto's centre: DE440's Pluto-Charon barycentre minus Charon's pull (as in
@@ -262,9 +245,8 @@ int main() {
             const glm::dvec3 jpl(2151452480.741, -4217531964.625, -1964164356.060);
             for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
                 if (std::string(s.name) != "Charon") continue;
-                const Astro::KeplerianBasis b = Astro::satelliteBasis(s, jd - Astro::J2000_EPOCH_JD);
-                const glm::dvec3 charon = Astro::evaluateOrbitVertex(b, b.E_rad) + MoonTable("resources/moons/Charon.bin").offset(jd);
-                const glm::dvec3 pluto = eph.heliocentric(Ephemeris::Pluto, jd).position - charon * (106.10 / eph.gravitationalParameter(9));
+                const glm::dvec3 charon = Orbits::moonPosition(s, MoonTable("resources/moons/Charon.bin"), jd);
+                const glm::dvec3 pluto = eph.heliocentric(Ephemeris::Pluto, jd).position - Orbits::plutoBarycentreOffset(charon, eph);
                 assert(glm::length(pluto - jpl) < 1.0);
             }
         }
@@ -289,24 +271,22 @@ int main() {
             assert(glm::length(p - glm::dvec3(c.x, c.y, c.z)) < 1.0);
         }
 
-        // Halley's line far from the Sun (SolarSystem::applyEphemeris blends to the
-        // barycentre past 10 AU) holds still: perihelion distance steady to 0.1% over
-        // 1990-2055, where the heliocentric ellipse swings 5% with Jupiter.
+        // Halley's line (Orbits::smallBodyLine) far from the Sun holds still: perihelion
+        // distance steady to 0.1% over 1990-2055, where the heliocentric ellipse swings 5%
+        // with Jupiter. Its period, shown in the HUD, ~75.45 years until the 2061 passage.
         {
             const MoonTable halley("resources/bodies/Halley.bin");
-            double planets = 0.0, qMin = 1e30, qMax = 0.0;
-            for (int i = 1; i < 10; ++i) planets += eph.gravitationalParameter(i);
+            double qMin = 1e30, qMax = 0.0;
             for (double jd = 2448000.0; jd < 2472000.0; jd += 97.0) {
-                const auto sunAt = [&](double j) { return eph.evaluate(Ephemeris::Sun, j).position; };
-                const double w = glm::smoothstep(3.0, 10.0, glm::length(halley.offset(jd) - sunAt(jd)) / Astro::AU_KM);
-                const auto rel = [&](double j) { return halley.offset(j) - (1.0 - w) * sunAt(j); };
-                const Astro::KeplerianBasis b = Astro::osculatingBasis(rel(jd), (rel(jd + 0.5) - rel(jd - 0.5)) / Astro::SECONDS_PER_DAY,
-                                                                       eph.gravitationalParameter(0) + w * planets);
+                glm::dvec3 fromSun;
+                const Astro::KeplerianBasis b = Orbits::smallBodyLine(eph, halley, jd, &fromSun);
+                assert(glm::length(b.focus_world + Astro::evaluateOrbitVertex(b, b.E_rad) - fromSun) < 1.0);   // through the comet
                 qMin = std::min(qMin, b.a_km * (1.0 - b.e));
                 qMax = std::max(qMax, b.a_km * (1.0 - b.e));
-                assert(std::abs(b.periodDays / 365.25 - 75.45) < 0.1);   // the HUD's period
+                assert(std::abs(b.periodDays / 365.25 - 75.45) < 0.1);
             }
             assert(qMax / qMin < 1.001);
+            assert(std::abs(Orbits::smallBodyLine(eph, halley, 2477000.0).periodDays / 365.25 - 72.6) < 0.2);   // after 2061
         }
 
         // Mars 1.03 days

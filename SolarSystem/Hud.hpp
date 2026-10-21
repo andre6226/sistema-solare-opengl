@@ -263,7 +263,7 @@ private:
         text.rect(L.dlgX, L.dlgY + L.dlgH - 1.0f, L.dlgW, 1.0f, glm::vec4(dim.r, dim.g, dim.b, 0.25f));
 
         // Header and Close button
-        text.text("IMPOSTA DATA E ORA UTC", L.dlgX + 20.0f, L.dlgY + 28.0f, 0.58f, bright);
+        text.text("SET UTC DATE AND TIME", L.dlgX + 20.0f, L.dlgY + 28.0f, 0.58f, bright);
         text.text("X", L.btnCloseX + 6.0f, L.btnCloseY + 16.0f, 0.48f, dim);
 
         text.text("FRECCE/TAB: scegli   SU/GIU/+/-: cambia   0-9: digita",
@@ -276,7 +276,7 @@ private:
         const int vals[6] = {frame.pickerYear, frame.pickerMonth, frame.pickerDay,
                              frame.pickerHour, frame.pickerMin, frame.pickerSec};
         const char* const valFmts[6] = {"%04d", "%02d", "%02d", "%02d", "%02d", "%02d"};
-        const char* const labels[6] = {"ANNO", "MESE", "GIORNO", "ORA", "MIN", "SEC"};
+        const char* const labels[6] = {"YEAR", "MONTH", "DAY", "HOUR", "MIN", "SEC"};
 
         for (int i = 0; i < 6; ++i) {
             const auto& f = L.fields[i];
@@ -318,17 +318,17 @@ private:
         // Bottom Action buttons
         // [ ADESSO ]
         text.rect(L.btnNowX, L.btnNowY, L.btnNowW, L.btnNowH, glm::vec4(0.08f, 0.10f, 0.16f, 0.85f));
-        text.text("ADESSO", L.btnNowX + 14.0f, L.btnNowY + 18.0f, 0.40f, bright);
+        text.text("NOW", L.btnNowX + 22.0f, L.btnNowY + 18.0f, 0.40f, bright);
 
         // [ ANNULLA ]
         text.rect(L.btnCancelX, L.btnCancelY, L.btnCancelW, L.btnCancelH, glm::vec4(0.08f, 0.10f, 0.16f, 0.85f));
-        text.text("ANNULLA", L.btnCancelX + 16.0f, L.btnCancelY + 18.0f, 0.40f, dim);
+        text.text("CANCEL", L.btnCancelX + 18.0f, L.btnCancelY + 18.0f, 0.40f, dim);
 
         // [ APPLICA ]
         text.rect(L.btnApplyX, L.btnApplyY, L.btnApplyW, L.btnApplyH,
                   glm::vec4(accent.r * 0.25f, accent.g * 0.25f, accent.b * 0.25f, 0.90f));
         text.rect(L.btnApplyX, L.btnApplyY, L.btnApplyW, 1.5f, accent);
-        text.text("APPLICA (Invio)", L.btnApplyX + 12.0f, L.btnApplyY + 18.0f, 0.40f, accent);
+        text.text("APPLY (Enter)", L.btnApplyX + 12.0f, L.btnApplyY + 18.0f, 0.40f, accent);
     }
 
     std::vector<std::pair<std::string, std::string>> buildRows(const HudFrame& frame) const {

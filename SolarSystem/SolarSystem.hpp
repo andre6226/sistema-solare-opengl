@@ -14,6 +14,7 @@
 #include "Hud.hpp"
 #include "OrbitRenderer.hpp"
 #include "Ephemeris.hpp"
+#include "Orbits.hpp"
 #include "IauRotation.hpp"
 #include "AsteroidBelt.hpp"
 
@@ -151,41 +152,16 @@ public:
         return currentTarget ? currentTarget->getData() : nullptr;
     }
 
-    // The HUD's orbit radius and period where they change: for a comet, asteroid or
-    // dwarf planet those of the ellipse its line draws (Halley 75.5 -> 72.6 years at its
-    // 2061 passage). Hyperion and Nereid, pulled about by Titan and the Sun (fit errors
-    // ~16 deg against under 0.4 deg for the rest), are off any ellipse, osculating ones
-    // too (Hyperion's says 22.0 d for 21.3): they get the time one turn takes on the
-    // real path round now, and half its nearest plus farthest distance. periodDays 0 for everything else,
-    // whose mean values the HUD keeps.
+    // The HUD's orbit radius and period where they change (Orbits.hpp): a small body's
+    // line, Halley 75.5 -> 72.6 years at its 2061 passage; Hyperion's and Nereid's turn on
+    // the real path. periodDays 0 for the rest, whose mean values the HUD keeps.
     Astro::KeplerianBasis getTargetOrbit() const {
         for (const BodyLink& link : links) {
             if (link.body != currentTarget || link.moonTable == nullptr) continue;
             if (link.moon == nullptr) return currentTarget->getOrbitBasis();
-            if (link.moon->fitErrorDeg < 1.0) break;
-            const double jd = Astro::unixToJulianDateTdb(simTimeSeconds), turn = glm::two_pi<double>() / link.moon->meanMotion;
-            const int steps = 64;
-            double swept = 0.0, nearest = 1e30, farthest = 0.0;
-            glm::dvec3 prev = moonPosition(link, jd - 0.5 * turn);
-            for (int k = 1; k <= steps; ++k) {
-                const glm::dvec3 p = moonPosition(link, jd + (k / double(steps) - 0.5) * turn);
-                swept += std::acos(std::clamp(glm::dot(glm::normalize(prev), glm::normalize(p)), -1.0, 1.0));
-                nearest = std::min(nearest, glm::length(p));
-                farthest = std::max(farthest, glm::length(p));
-                prev = p;
-            }
-            Astro::KeplerianBasis b{};
-            b.a_km = 0.5 * (nearest + farthest);
-            b.periodDays = turn * glm::two_pi<double>() / swept;
-            return b;
+            if (Orbits::offAnyEllipse(*link.moon)) return Orbits::measuredTurn(*link.moon, *link.moonTable, Astro::unixToJulianDateTdb(simTimeSeconds));
         }
         return Astro::KeplerianBasis{};
-    }
-
-    // A fitted moon's full JPL position, planetocentric ICRF km.
-    glm::dvec3 moonPosition(const BodyLink& link, double jdTdb) const {
-        const Astro::KeplerianBasis b = Astro::satelliteBasis(*link.moon, jdTdb - Astro::J2000_EPOCH_JD);
-        return Astro::evaluateOrbitVertex(b, b.E_rad) + link.moonTable->offset(jdTdb);
     }
 
     int getTargetSatelliteCount() const {
@@ -518,9 +494,7 @@ private:
         if (item != Ephemeris::Pluto) return glm::dvec3(0.0);
         for (const BodyLink& m : links) {
             if (m.moon == nullptr || std::string(m.moon->name) != "Charon") continue;
-            const Astro::KeplerianBasis b = Astro::satelliteBasis(*m.moon, jdTdb - Astro::J2000_EPOCH_JD);
-            const glm::dvec3 charon = Astro::evaluateOrbitVertex(b, b.E_rad) + m.moonTable->offset(jdTdb);
-            return charon * (106.10 / ephemeris.gravitationalParameter(9));
+            return Orbits::plutoBarycentreOffset(Orbits::moonPosition(*m.moon, *m.moonTable, jdTdb), ephemeris);
         }
         return glm::dvec3(0.0);
     }
@@ -541,31 +515,13 @@ private:
             } else if (link.moon != nullptr) {
                 // shortcut: DE440 places each giant at its system barycentre, under 300 km
                 // from its centre (Pluto, 2,100 km off, is moved to its centre below).
-                const auto at = [&](double jd) { return toWorld * moonPosition(link, jd); };
-                // The line is the osculating ellipse of the full JPL position, so it runs
-                // through the moon: the mean ellipse misses Hyperion, pulled about by Titan,
-                // by up to a quarter of its orbit. mu = n^2 a^3 of the fit keeps the line at
-                // the mean size where the planet's flattening speeds the inner moons up.
-                const double dt = 1.0e-3;   // days, a 300th of Phobos's orbit
-                const glm::dvec3 v = (at(jdTdb + dt) - at(jdTdb - dt)) / (2.0 * dt * Astro::SECONDS_PER_DAY);
-                const double n = link.moon->meanMotion / Astro::SECONDS_PER_DAY, a = std::abs(link.moon->a);
-                link.body->setEphemerisOffset(at(jdTdb), Astro::osculatingBasis(at(jdTdb), v, n * n * a * a * a));
+                link.body->setEphemerisOffset(toWorld * Orbits::moonPosition(*link.moon, *link.moonTable, jdTdb),
+                    Orbits::rotated(Orbits::moonLine(*link.moon, *link.moonTable, jdTdb), toWorld));
             } else if (link.moonTable != nullptr) {
-                // Asteroids, dwarf planets, Halley: barycentric JPL position minus the DE440 Sun.
-                // The orbit line osculates about the Sun near it, and about the barycentre
-                // (with the planets' mass) far out, blended between 3 and 10 AU: there the
-                // Sun's 12-year wobble under Jupiter would make Halley's ellipse breathe.
-                const auto sunAt = [&](double jd) { return ephemeris.evaluate(Ephemeris::Sun, jd).position; };
-                const glm::dvec3 p = link.moonTable->offset(jdTdb) - sunAt(jdTdb);
-                const double w = glm::smoothstep(3.0, 10.0, glm::length(p) / Astro::AU_KM);
-                const auto rel = [&](double jd) { return link.moonTable->offset(jd) - (1.0 - w) * sunAt(jd); };
-                const glm::dvec3 v = rel(jdTdb + 0.5) - rel(jdTdb - 0.5);  // km/day
-                double mu = 0.0;
-                for (int i = 1; i < 10; ++i) mu += ephemeris.gravitationalParameter(i);
-                Astro::KeplerianBasis b = Astro::osculatingBasis(toWorld * rel(jdTdb), toWorld * v / Astro::SECONDS_PER_DAY,
-                                                                 ephemeris.gravitationalParameter(0) + w * mu);
-                b.focus_world = toWorld * (-w * sunAt(jdTdb));   // the blended centre, from the Sun
-                link.body->setEphemerisOffset(toWorld * p, b);
+                // Asteroids, dwarf planets, Halley: barycentric JPL table minus the DE440 Sun.
+                glm::dvec3 fromSun;
+                const Astro::KeplerianBasis b = Orbits::smallBodyLine(ephemeris, *link.moonTable, jdTdb, &fromSun);
+                link.body->setEphemerisOffset(toWorld * fromSun, Orbits::rotated(b, toWorld));
             } else if (link.deItem >= 0) {
                 const auto item = static_cast<Ephemeris::Item>(link.deItem);
                 const Ephemeris::State p = (item == Ephemeris::EarthMoonBarycentre)
