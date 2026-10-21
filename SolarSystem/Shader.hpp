@@ -144,4 +144,5 @@ struct UniformLocations {
     GLint shadowCasterPos;
     GLint shadowCasterRadius;
     GLint casterHasAtmosphere;
+    GLint airless;
 };

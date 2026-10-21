@@ -107,6 +107,7 @@ int main(int argc, char** argv) {
         locs.shadowCasterPos     = shader.uniformLocation("shadowCasterPos");
         locs.shadowCasterRadius  = shader.uniformLocation("shadowCasterRadius");
         locs.casterHasAtmosphere = shader.uniformLocation("casterHasAtmosphere");
+        locs.airless             = shader.uniformLocation("airless");
 
         shader.use();
         // Sampler uniforms default to 0, so binding textures to GL_TEXTURE0

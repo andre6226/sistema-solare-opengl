@@ -40,6 +40,7 @@ private:
     bool hasEphemerisOffset = false;
     glm::dvec3 ephemerisOffset{0.0};   // from the parent, world axes, km
     bool hasPole = false;
+    bool airless = false;            // shaded as regolith (Lommel-Seeliger), not Lambert
     glm::dmat3 bodyFrame{1.0};         // mesh axes to world, with the spin
     glm::dmat3 equatorFrame{1.0};      // same without the spin: the frame rings and tilted moons use
     glm::vec3 shape{1.0f};             // per-axis radius over `scale`, mesh axes
@@ -177,6 +178,8 @@ public:
         equatorFrame = equator;
     }
     // Triaxial radii along the mesh axes, km; `scale` becomes the largest.
+    void setAirless(bool value) { airless = value; }
+
     void setRadii(const glm::vec3& radii) {
         scale = std::max(radii.x, std::max(radii.y, radii.z));
         shape = radii / scale;
@@ -217,6 +220,7 @@ public:
         }
 
         glUniform1i(locs.shadowCasterCount, casterCount);
+        glUniform1f(locs.airless, (type == BodyType::Planet && airless) ? 1.0f : 0.0f);
         glUniform1f(locs.casterHasAtmosphere,
                     (type == BodyType::Planet && parent != nullptr && parent->name == "Earth") ? 1.0f : 0.0f);
         if (casterCount > 0) {

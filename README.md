@@ -133,9 +133,16 @@ sunlight Earth's atmosphere bends in: deep red near the axis, copper towards the
 edge. That glow is a chosen colour, not a computed one. On the Moon the lit share
 is mapped on a log scale, as the eye sees it next to an umbra ~10,000 times
 darker: otherwise the sliver of a partial eclipse, lit by 0.04–3% of the Sun,
-would look black. The Moon is also shaded with the Lommel–Seeliger law of dusty,
-airless surfaces, so the full Moon stays bright out to its limb instead of
-darkening there as a Lambert sphere does.
+would look black.
+
+### How surfaces take light
+
+Bodies without an atmosphere worth the name (Mercury, the Moon and every other
+moon but Titan, the asteroids, Pluto and the dwarf planets) are shaded with the
+Lommel–Seeliger law of dusty, airless surfaces, and with no specular glint: a full
+Moon or a full Io stays bright out to its limb instead of darkening there as a
+Lambert sphere does. Venus, Earth, Mars, the giants and Titan keep Lambert, whose
+darkening limb is what their photos show.
 
 ### Which way things face
 

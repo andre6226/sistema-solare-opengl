@@ -35,6 +35,8 @@ uniform vec3 shadowCasterPos[8];
 uniform float shadowCasterRadius[8];
 // 1 when the single caster is Earth: its air widens the shadow and bends red light into it.
 uniform float casterHasAtmosphere;
+// 1 for bodies without an atmosphere worth the name: shaded as dusty regolith.
+uniform float airless;
 
 // Radial extent of the ring annulus, as a fraction of the quad's half width.
 const float RING_INNER = 0.502;   // 70,750 km of the 140,920 km quad, see SolarSystem.hpp
@@ -107,15 +109,16 @@ void main() {
 
     // Lambert (diffuse)
     float diff = max(dot(normal, lightDir), 0.0);
-    // The Moon (the only body Earth shadows) is dusty regolith: Lommel-Seeliger, so
-    // the full Moon is evenly bright to its limb instead of Lambert-dark there.
-    if (casterHasAtmosphere > 0.5) diff = 2.0 * diff / (diff + max(dot(normal, viewDir), 0.0) + 1e-4);
+    // Airless bodies are dusty regolith or ice: Lommel-Seeliger, so a full Moon or a
+    // full Io is evenly bright to its limb instead of Lambert-dark there. Cloudy
+    // planets keep Lambert, whose darkening limb is what their photos show.
+    if (airless > 0.5) diff = 2.0 * diff / (diff + max(dot(normal, viewDir), 0.0) + 1e-4);
     vec3 diffuse = diff * vec3(1.0);
 
     // Blinn-Phong (specular), gated by the same cosine as the diffuse term.
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
-    vec3 specular = spec * vec3(0.3) * diff;
+    vec3 specular = spec * vec3(0.3) * diff * (1.0 - airless);   // dust has no glint
 
     vec3 ambient = vec3(0.008);
 

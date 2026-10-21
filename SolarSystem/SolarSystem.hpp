@@ -545,6 +545,9 @@ private:
         }
 
         raw->setData(&data);
+        // Only these have an atmosphere that shapes how their disc is lit.
+        static const std::string withAir[] = {"Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Titan"};
+        raw->setAirless(std::find(std::begin(withAir), std::end(withAir), data.name) == std::end(withAir));
         raw->setOrbitAngle(static_cast<double>(bodies.size()) * 2.39996322972865332);
         linkBody(raw, data, geometry != nullptr && geometry != &sphereGeometry);
         bodies.push_back(std::move(body));
