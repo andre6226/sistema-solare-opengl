@@ -132,6 +132,7 @@ struct UniformLocations {
     // Rings only: geometry of the body casting the shadow onto them.
     GLint parentCenter;
     GLint parentRadius;
+    GLint parentPolarRadius;
 
     // Planets with rings: the ring plane's normal and outer radius (0 = no rings).
     GLint ringCenter;

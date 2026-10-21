@@ -268,7 +268,16 @@ the rings are drawn at that size. They were 10% too small before.
 They lie in Saturn's equator (its IAU pole) and cast their shadow on the globe:
 for each point of Saturn, the ray towards the Sun crosses the ring plane at some
 radius, and the light left is what the ring texture lets through there. The
-shadow edges are sharp; the Sun's disc would blur them by about 100 km.
+shadow edges are sharp; the Sun's disc would blur them by about 100 km. The lit
+rings also shine on the band they shadow, a few percent of sunlight, so its cloud
+belts still show.
+
+Saturn's own shadow on the rings is cast by the oblate globe, 10% flatter at the
+poles: the ray to the Sun is tested against the ellipsoid, not a sphere, which
+would make the shadow 6% too long. The shadow is half an ellipse whose length grows
+as the Sun drops towards the ring plane: in 2017, with the Sun 27° up, it ended in
+the A ring; near the 2025 equinox it ran across all of them. Rings in the shadow
+keep a faint glow from Saturn's day side.
 
 
 ## Earth's clouds, lights and air

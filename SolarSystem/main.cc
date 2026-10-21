@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
         locs.bodyType     = shader.uniformLocation("bodyType");
         locs.parentCenter = shader.uniformLocation("parentCenter");
         locs.parentRadius = shader.uniformLocation("parentRadius");
+        locs.parentPolarRadius = shader.uniformLocation("parentPolarRadius");
         locs.ringCenter      = shader.uniformLocation("ringCenter");
         locs.ringNormal      = shader.uniformLocation("ringNormal");
         locs.ringOuterRadius = shader.uniformLocation("ringOuterRadius");

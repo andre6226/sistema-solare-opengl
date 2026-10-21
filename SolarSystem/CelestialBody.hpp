@@ -203,6 +203,7 @@ public:
         if (type == BodyType::Ring && parent != nullptr) {
             glUniform3fv(locs.parentCenter, 1, &parent->worldPosition[0]);
             glUniform1f(locs.parentRadius, parent->scale);
+            glUniform1f(locs.parentPolarRadius, parent->scale * parent->shape.y);   // mesh +Y = pole
         }
 
         // Dynamic Eclipse Shadow Casters

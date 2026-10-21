@@ -21,7 +21,8 @@ uniform sampler2D bodyTexture;
 
 // Rings only: the body casting the shadow onto them.
 uniform vec3  parentCenter;
-uniform float parentRadius;
+uniform float parentRadius;        // equatorial
+uniform float parentPolarRadius;
 
 // Planets with rings: the ring plane, through ringCenter, and the ring texture.
 uniform sampler2D ringTexture;
@@ -194,27 +195,35 @@ void main() {
         vec4 ring = texture(ringTexture, vec2(clamp((r - RING_INNER) / (RING_OUTER - RING_INNER), 0.0, 1.0), 0.5));
         // Same cut as the ring pass: what it discards casts nothing.
         bool opaque = ring.a >= 0.1 && length(ring.rgb) >= 0.15;
-        if (t > 0.0 && r >= RING_INNER && r <= RING_OUTER && opaque) shadowFactor *= 1.0 - ring.a;
+        if (t > 0.0 && r >= RING_INNER && r <= RING_OUTER && opaque) {
+            shadowFactor *= 1.0 - ring.a;
+            // Ringshine: the rings themselves glow in sunlight and light the band their
+            // shadow darkens, so its cloud belts still show, a few percent of the Sun.
+            umbraLight += vec3(0.06) * ring.a * diff;
+        }
     }
     diffuse *= shadowFactor;
     specular *= shadowFactor;
 
     if (isRing) {
-        vec3 rayDir = normalize(vWorldPos - lightPos);
-        float projectedDistance = dot(parentCenter - lightPos, rayDir);
-        vec3 closestPoint = lightPos + rayDir * projectedDistance;
-        float distanceFromAxis = length(closestPoint - parentCenter);
-
-        bool behindPlanet = projectedDistance < length(vWorldPos - lightPos);
-
-        if (distanceFromAxis < (parentRadius * 0.98) && behindPlanet) {
-            ambient  = vec3(0.005);
-            diffuse  = vec3(0.0);
-            specular = vec3(0.0);
-            albedo  *= 0.15;
-        } else {
-            ambient = vec3(0.8);
-        }
+        // The planet's shadow: the ray from here to the Sun against the oblate globe,
+        // in coordinates stretched along the pole (the ring normal) so the globe is a
+        // sphere of the equatorial radius. Measured from the planet, so floats keep
+        // metre precision instead of the Sun's 10^9 km.
+        vec3 pole = normalize(vNormal);
+        float stretch = parentRadius / max(parentPolarRadius, 1.0) - 1.0;
+        vec3 o = vWorldPos - parentCenter;
+        vec3 d = normalize(lightPos - vWorldPos);
+        o += stretch * dot(o, pole) * pole;
+        d += stretch * dot(d, pole) * pole;
+        float tClosest = -dot(o, d) / dot(d, d);
+        float miss = length(o + d * max(tClosest, 0.0));
+        // Saturn's upper air dims the edge over a few hundred km.
+        float inShadow = (tClosest > 0.0) ? 1.0 - smoothstep(parentRadius * 0.995, parentRadius * 1.003, miss) : 0.0;
+        // Lit by the Sun, or in the shadow by the planet's dayside glow, ~1.5% as bright.
+        ambient  = mix(vec3(0.8), vec3(0.012), inShadow);
+        diffuse  *= 1.0 - inShadow;
+        specular *= 1.0 - inShadow;
     }
 
     vec3 color;
