@@ -66,6 +66,14 @@ and the shaders next to the binary on every build, changed files only.
 * **Time:** `T` opens the date picker (1900–2200, UTC); `SHIFT`/`CTRL` speed
   time up or down, `SPACE` back to real time.
 * **Orbits:** `O` toggles the orbit lines. The focused body's own orbit is hidden.
+* **Command line** (run from `build/`): `--date 2026-08-12T17:46:00` (UTC),
+  `--focus Moon` (camera on the Sun's side of the body), `--azimuth`/`--elevation`
+  (degrees, turning the camera from there), `--distance` (km), and
+  `--screenshot out.png`, which freezes time, saves the frame and exits:
+
+  ```
+  cd build && ./SolarSystem.bin --date 2025-09-07T18:11:00 --focus Moon --screenshot moon.png
+  ```
 
 ## Try it
 
@@ -234,7 +242,12 @@ bash tests/run_tests.sh
 ```
 
 Includes the eclipse check against the NASA catalogue and the Earth
-orientation check.
+orientation check. With `build/SolarSystem.bin` built and `xvfb-run` or a
+display available, it also renders the scenes in `tests/visual/render_refs.sh`
+(solar and lunar eclipses, Saturn's rings, Io's shadow on Jupiter) and compares
+them with `tests/visual/ref/` by mean pixel difference; otherwise that step
+prints SKIP. After an intended visual change, look at the new images and
+refresh the references with `tests/visual/render_refs.sh tests/visual/ref`.
 
 ## License
 
