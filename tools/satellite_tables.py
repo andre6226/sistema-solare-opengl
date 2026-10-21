@@ -35,14 +35,14 @@ def fitted_params(header):
     return out
 
 
-def segment_fit(t, r, start, seg, nc, pad, only=None):
+def segment_fit(t, r, start, seg, nc, pad, only=None, dtype=np.float32):
     """Per-segment Chebyshev fit; pad extra samples on each side pin the segment edges."""
     coeffs = {}
     for s in (np.unique(np.floor((t - start) / seg).astype(int)) if only is None else only):
         lo = max(np.searchsorted(t, start + s * seg) - pad, 0)
         hi = np.searchsorted(t, start + (s + 1) * seg) + pad
         x = 2.0 * (t[lo:hi] - (start + s * seg)) / seg - 1.0
-        coeffs[s] = np.array([cheb.chebfit(x, r[lo:hi, a], nc - 1) for a in range(3)], dtype=np.float32)
+        coeffs[s] = np.array([cheb.chebfit(x, r[lo:hi, a], nc - 1) for a in range(3)], dtype=dtype)
     return coeffs
 
 

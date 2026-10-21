@@ -52,7 +52,7 @@ private:
         const Astro::IauBody* iau;     // nullptr = keeps tilt + spin
         glm::dmat3 meshToBody;
         const Astro::SatelliteOrbit* moon = nullptr;   // fitted planetary moon
-        std::shared_ptr<MoonTable> moonTable;           // its JPL correction
+        std::shared_ptr<MoonTable> moonTable;           // its JPL correction, or a small body's barycentric JPL position
     };
     std::vector<BodyLink> links;
     CelestialBody* saturnRings = nullptr;
@@ -378,6 +378,10 @@ private:
         for (const auto& [d, item] : deBodies) {
             if (d == &data) link.deItem = item;
         }
+        for (const Astro::BodyData* d : {&Astro::Ceres, &Astro::Pallas, &Astro::Vesta, &Astro::Ida, &Astro::Eros,
+                                         &Astro::Gaspra, &Astro::Haumea, &Astro::Eris, &Astro::Makemake}) {
+            if (d == &data) link.moonTable = std::make_shared<MoonTable>(std::string("resources/bodies/") + data.name + ".bin");
+        }
         for (const Astro::IauBody& iau : Astro::iauBodies()) {
             if (std::string(iau.name) == data.name) link.iau = &iau;
         }
@@ -415,6 +419,14 @@ private:
                 b.Q_world = toWorld * b.Q_world;
                 // The line keeps the mean ellipse; the body gets the full JPL position.
                 link.body->setEphemerisOffset(Astro::evaluateOrbitVertex(b, b.E_rad) + toWorld * link.moonTable->offset(jdTdb), b);
+            } else if (link.moonTable != nullptr) {
+                // Asteroids and dwarf planets: barycentric JPL position minus the DE440 Sun,
+                // orbit line osculating.
+                const auto helio = [&](double jd) { return link.moonTable->offset(jd) - ephemeris.evaluate(Ephemeris::Sun, jd).position; };
+                const glm::dvec3 p = helio(jdTdb);
+                const glm::dvec3 v = helio(jdTdb + 0.5) - helio(jdTdb - 0.5);  // km/day
+                link.body->setEphemerisOffset(toWorld * p,
+                    Astro::osculatingBasis(toWorld * p, toWorld * v / Astro::SECONDS_PER_DAY, ephemeris.gravitationalParameter(0)));
             } else if (link.deItem >= 0) {
                 const auto item = static_cast<Ephemeris::Item>(link.deItem);
                 const Ephemeris::State p = (item == Ephemeris::EarthMoonBarycentre)

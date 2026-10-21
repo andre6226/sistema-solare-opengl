@@ -38,14 +38,22 @@ function(setup_target_resources target_name)
         set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "${target_name}.bin")
     endif()
 
-    add_custom_command(TARGET ${target_name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory 
+    # On every build, not only when the binary relinks: a shader or a data file can
+    # change on its own.
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.26)
+        set(copy_dir copy_directory_if_different)
+    else()
+        set(copy_dir copy_directory)
+    endif()
+    add_custom_target(${target_name}_files ALL
+        COMMAND ${CMAKE_COMMAND} -E ${copy_dir}
             "${CMAKE_SOURCE_DIR}/resources" 
             "$<TARGET_FILE_DIR:${target_name}>/resources"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory 
+        COMMAND ${CMAKE_COMMAND} -E ${copy_dir}
             "${CMAKE_SOURCE_DIR}/${target_name}" 
             "$<TARGET_FILE_DIR:${target_name}>/${target_name}"
     )
+    add_dependencies(${target_name}_files ${target_name})
 
     if(WIN32)
         add_custom_command(TARGET ${target_name} POST_BUILD

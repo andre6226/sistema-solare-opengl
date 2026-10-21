@@ -125,8 +125,10 @@ private:
     size_t recordWidth = 0;
 };
 
-// A moon's offset from its mean-element orbit (tools/satellite_tables.py), km, ICRF,
-// so that orbit + offset matches the JPL satellite ephemerides to under 1 km.
+// A moon's offset from its mean-element orbit (tools/satellite_tables.py, MOONCHEB,
+// float32), or a small body's heliocentric position (tools/smallbody_tables.py,
+// BODYCHEB, float64, from the solar-system barycentre): km, ICRF, matching JPL to
+// under 1 km.
 class MoonTable {
 public:
     explicit MoonTable(const std::string& path) {
@@ -139,11 +141,18 @@ public:
         in.read(reinterpret_cast<char*>(&segmentDays), 8);
         in.read(reinterpret_cast<char*>(&count), 4);
         in.read(reinterpret_cast<char*>(&order), 4);
-        if (!in || std::memcmp(magic, "MOONCHEB", 8) != 0 || count <= 0 || order < 2 || segmentDays <= 0.0) {
-            throw std::runtime_error(path + ": not a MOONCHEB table");
+        const bool wide = std::memcmp(magic, "BODYCHEB", 8) == 0;
+        if (!in || (!wide && std::memcmp(magic, "MOONCHEB", 8) != 0) || count <= 0 || order < 2 || segmentDays <= 0.0) {
+            throw std::runtime_error(path + ": not a MOONCHEB/BODYCHEB table");
         }
         coefficients.resize(static_cast<size_t>(count) * 3 * order);
-        in.read(reinterpret_cast<char*>(coefficients.data()), coefficients.size() * sizeof(float));
+        if (wide) {
+            in.read(reinterpret_cast<char*>(coefficients.data()), coefficients.size() * sizeof(double));
+        } else {
+            std::vector<float> narrow(coefficients.size());
+            in.read(reinterpret_cast<char*>(narrow.data()), narrow.size() * sizeof(float));
+            std::copy(narrow.begin(), narrow.end(), coefficients.begin());
+        }
         if (!in) throw std::runtime_error(path + ": truncated");
     }
 
@@ -152,7 +161,7 @@ public:
         const double u = std::fmin(std::fmax((jdTdb - jdStart) / segmentDays, 0.0), static_cast<double>(count) - 1e-9);
         const size_t segment = std::min(static_cast<size_t>(u), count - 1);
         const double t = 2.0 * (u - segment) - 1.0;
-        const float* c = &coefficients[segment * 3 * order];
+        const double* c = &coefficients[segment * 3 * order];
         glm::dvec3 result(0.0);
         for (int axis = 0; axis < 3; ++axis, c += order) {
             double tPrev = 1.0, tCur = t, sum = c[0] + c[1] * t;
@@ -167,7 +176,7 @@ public:
     }
 
 private:
-    std::vector<float> coefficients;
+    std::vector<double> coefficients;
     double jdStart = 0.0, segmentDays = 0.0;
     int32_t order = 0;
 };

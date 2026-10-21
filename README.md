@@ -20,6 +20,7 @@ or will be, turned the way it really faces.
 | Poles, spin, shape | IAU WGCCRE 2015 (NAIF `pck00011.tpc`) | — | oblate Saturn, Jupiter, Earth; real prime meridians |
 | Moon's orientation | DE440 lunar librations | — | the near side faces Earth, with libration |
 | 19 planetary moons | JPL satellite ephemerides (Horizons) | JPL samples the tables never saw, 1900–2200 | mean orbit + correction tables: **< 1 km** for every moon (worst: Miranda, 0.92 km), 137 MB |
+| Asteroids and dwarf planets (Ceres, Pallas, Vesta, Ida, Eros, Gaspra, Haumea, Eris, Makemake) | JPL small-body ephemerides (Horizons) | 20 short JPL requests per body the tables never saw, 1900–2200 | **< 0.3 km**, median tens of metres, 2 MB |
 | Saturn's rings | texture measured on the Cassini division and Encke gap | — | C ring to F ring at the real radii |
 
 **The one thing no model fixes:** after 2026 the time shown is UTC predicted
@@ -54,8 +55,8 @@ cmake --build build
 ```
 
 SFML and GLM are fetched by CMake on the first configure. The build copies
-`resources/` (including the ~28 MB ephemeris and the moon tables) and the shaders
-next to the binary.
+`resources/` (including the ~28 MB ephemeris and the moon and small-body tables)
+and the shaders next to the binary on every build, changed files only.
 
 ## Controls
 
@@ -112,6 +113,17 @@ where Earth sees it), and the Moon one lunar light time back
 to 2200 come out within 0.5 s. The Sun's own drift round the barycentre during
 those 8 minutes (~6 km) moves the shadow by about 20 m.
 
+How dark each point is comes from the share of the Sun's disc the Moon (or
+Earth) hides as seen from there: the overlap of the two angular discs, which gives
+the umbra, the penumbra and the annular ring without special cases. Earth's
+shadow is 1/85 wider than the planet, for the opaque lower atmosphere (Danjon's
+rule, the one NASA's lunar eclipse catalogue uses): the umbral magnitude of
+2026-08-28 comes out 0.933 against NASA's 0.930. Inside it, the Moon gets the
+sunlight Earth's atmosphere bends in: deep red near the axis, copper towards the
+edge. That glow is a chosen colour, not a computed one. On the Moon the lit share
+is gamma-encoded for the eye, or the sliver of a partial eclipse, lit by 3% of
+the Sun, would look black.
+
 ### Which way things face
 
 * **Earth:** body-fixed frame from IAU 2006 precession, the IAU 1980 nutation
@@ -163,6 +175,19 @@ ship, so each moon is stored in two layers:
 Orbit lines are drawn from the mean orbit; the body itself gets mean orbit +
 correction.
 
+### Asteroids and dwarf planets
+
+They are not in DE440, so their positions come from JPL's small-body
+ephemerides through Horizons (`tools/smallbody_tables.py` →
+`resources/bodies/*.bin`): Chebyshev polynomials in float64, in 64-day segments
+for the asteroids and 2,048-day segments for the dwarf planets. The tables hold
+the position from the solar-system barycentre, and the app subtracts the DE440
+Sun: heliocentric positions carry the Sun's own wobble (Mercury alone moves it
+~10 km every 88 days), which would need far shorter segments. Horizons integrates
+these orbits on request, and one request spanning centuries drifts by up to
+15 km, so the samples come in requests of at most 10,000 days. The fixed Kepler
+ellipses these tables replace were off by tens of degrees (Ceres by 80° in 2026).
+
 ### Orbit lines
 
 Each planet's line is its osculating ellipse, the orbit it would follow if every
@@ -191,6 +216,7 @@ in `tools/`, from public files:
 | `tools/pck_extract.py` | `pck00011.tpc` from NAIF | `SolarSystem/IauRotation.hpp` |
 | `tools/satellite_fit.py` | Horizons API | `SolarSystem/SatelliteOrbits.hpp` |
 | `tools/satellite_tables.py` | Horizons API | `resources/moons/*.bin` |
+| `tools/smallbody_tables.py` | Horizons API | `resources/bodies/*.bin` |
 
 ## Tests
 

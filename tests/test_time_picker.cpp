@@ -206,6 +206,24 @@ int main() {
         }
         assert(moonsChecked == 19);
 
+        // Asteroids and dwarf planets: barycentric table minus the DE440 Sun, against
+        // JPL Horizons heliocentric ICRF km (short requests, off the table grid): within 1 km.
+        struct BodyCheck { const Astro::BodyData* body; double jd, x, y, z; };
+        for (const BodyCheck& c : {
+                                  BodyCheck{&Astro::Ceres, 2416798.270000, 134153810.254, -365280716.817, -197355128.272},
+                                  BodyCheck{&Astro::Pallas, 2428818.770000, 273572167.709, -427710791.332, 67110035.424},
+                                  BodyCheck{&Astro::Vesta, 2440839.270000, -312552020.034, -116127781.150, -5363698.720},
+                                  BodyCheck{&Astro::Ida, 2452859.770000, -282177876.921, -313473716.954, -145548816.380},
+                                  BodyCheck{&Astro::Eros, 2464880.270000, 74406003.102, 141417718.741, 93715400.263},
+                                  BodyCheck{&Astro::Gaspra, 2476900.770000, -377755497.563, 31385594.706, -15148267.217},
+                                  BodyCheck{&Astro::Haumea, 2488921.270000, 3212123512.326, -4141037029.736, -1971658775.260},
+                                  BodyCheck{&Astro::Eris, 2500941.770000, 6375868801.281, 6675202882.429, 6302981683.622},
+                                  BodyCheck{&Astro::Makemake, 2512962.270000, 4900546273.837, -195445917.756, -3154151491.973}}) {
+            const glm::dvec3 p = MoonTable(std::string("resources/bodies/") + c.body->name + ".bin").offset(c.jd)
+                - eph.evaluate(Ephemeris::Sun, c.jd).position;
+            assert(glm::length(p - glm::dvec3(c.x, c.y, c.z)) < 1.0);
+        }
+
         // Mars 1.03 days
         const double T_mars = T0 + 1.03 / Astro::DAYS_PER_JULIAN_CENTURY;
         const double marsRot0 = (D0 / Astro::Mars.rotationPeriodDays) * glm::two_pi<double>();

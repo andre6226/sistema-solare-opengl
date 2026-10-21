@@ -30,9 +30,9 @@ MOONS = [('Phobos', 401, 499, 0.3187, 317.7, 52.9), ('Deimos', 402, 499, 1.2625,
 
 
 def horizons(cache, target, centre, start, stop, intervals):
-    path = os.path.join(cache, '%d_%d_%.1f_%.1f_%d.json' % (target, centre, start, stop, intervals))
+    path = os.path.join(cache, '%s_%d_%.1f_%.1f_%d.json' % (target, centre, start, stop, intervals))
     if not os.path.exists(path):
-        params = {'format': 'json', 'COMMAND': "'%d'" % target, 'EPHEM_TYPE': "'VECTORS'",
+        params = {'format': 'json', 'COMMAND': "'%s'" % target, 'EPHEM_TYPE': "'VECTORS'",
                   'CENTER': "'500@%d'" % centre, 'START_TIME': "'JD%.6f'" % start, 'STOP_TIME': "'JD%.6f'" % stop,
                   'STEP_SIZE': "'%d'" % intervals, 'REF_PLANE': "'FRAME'", 'REF_SYSTEM': "'ICRF'",
                   'VEC_TABLE': "'1'", 'CSV_FORMAT': "'YES'", 'OUT_UNITS': "'KM-S'", 'TIME_TYPE': "'TDB'"}
@@ -44,7 +44,7 @@ def horizons(cache, target, centre, start, stop, intervals):
             except Exception:
                 time.sleep(30 * (attempt + 1))
         else:
-            raise RuntimeError('Horizons failed for %d' % target)
+            raise RuntimeError('Horizons failed for %s' % target)
         if '$$SOE' not in text:
             raise RuntimeError(text[-2000:])
         open(path, 'w').write(text)
