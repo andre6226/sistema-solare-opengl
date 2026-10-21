@@ -151,6 +151,16 @@ public:
         return currentTarget ? currentTarget->getData() : nullptr;
     }
 
+    // For a comet, asteroid or dwarf planet, the ellipse its orbit line draws now:
+    // planetary encounters change their periods (Halley 75.5 -> 72.6 years in 2061).
+    // nullptr for planets and moons, whose mean periods mean more than osculating ones.
+    const Astro::KeplerianBasis* getTargetOrbit() const {
+        for (const BodyLink& link : links) {
+            if (link.body == currentTarget && link.moonTable != nullptr && link.moon == nullptr) return &currentTarget->getOrbitBasis();
+        }
+        return nullptr;
+    }
+
     int getTargetSatelliteCount() const {
         if (!currentTarget) return 0;
 

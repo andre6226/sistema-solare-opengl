@@ -273,6 +273,10 @@ Asteroids, dwarf planets and Halley do the same by distance: about the Sun insid
 between. Far out, the heliocentric ellipse of Halley breathed with Jupiter's
 12-year period, its perihelion between 0.57 and 0.60 AU; about the barycentre
 it holds at 0.584 AU to 0.1%, and changes only at its passages among the planets.
+For these small bodies the HUD's orbit radius and period are those of the line,
+so they change with it: Halley's period drops from 75.5 to 72.6 years at its 2061
+passage, matching its predicted return in 2134. Planets and moons keep their mean
+values.
 
 ### Saturn's rings
 

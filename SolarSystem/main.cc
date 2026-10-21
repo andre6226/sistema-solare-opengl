@@ -258,6 +258,7 @@ int main(int argc, char** argv) {
             hudFrame.targetName     = currentTarget;
             hudFrame.targetPath     = solarSystem.getTargetPath();
             hudFrame.data           = solarSystem.getTargetData();
+            hudFrame.orbit          = solarSystem.getTargetOrbit();
             hudFrame.satelliteCount = solarSystem.getTargetSatelliteCount();
             hudFrame.timeScale      = input.timeScale;
             hudFrame.cameraDistance = glm::length(cameraPosition - solarSystem.getTargetPosition());   // true mid-flight too

@@ -90,6 +90,7 @@ namespace Astro {
         double M_rad = 0.0;      // Mean anomaly in radians
         double E_rad = 0.0;      // Eccentric anomaly in radians
         glm::dvec3 focus_world{0.0}; // Where the ellipse's focus sits relative to the parent
+        double periodDays = 0.0; // Of this ellipse, for the HUD; 0 = unknown
     };
 
     inline KeplerianBasis evaluateKeplerianBasis(const KeplerianElements& el, double T) {
@@ -245,6 +246,7 @@ namespace Astro {
         b.Q_world = glm::normalize(glm::cross(h, b.P_world));
         b.E_rad = std::atan2(glm::dot(r, b.Q_world) / std::sqrt(1.0 - b.e * b.e), glm::dot(r, b.P_world) + b.a_km * b.e);
         b.M_rad = b.E_rad - b.e * std::sin(b.E_rad);
+        if (b.a_km > 0.0) b.periodDays = glm::two_pi<double>() * std::sqrt(b.a_km * b.a_km * b.a_km / mu) / SECONDS_PER_DAY;
         return b;
     }
 

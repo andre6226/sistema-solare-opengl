@@ -281,6 +281,7 @@ int main() {
                                                                        eph.gravitationalParameter(0) + w * planets);
                 qMin = std::min(qMin, b.a_km * (1.0 - b.e));
                 qMax = std::max(qMax, b.a_km * (1.0 - b.e));
+                assert(std::abs(b.periodDays / 365.25 - 75.45) < 0.1);   // the HUD's period
             }
             assert(qMax / qMin < 1.001);
         }
