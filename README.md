@@ -139,9 +139,16 @@ rule, the one NASA's lunar eclipse catalogue uses): the umbral magnitude of
 2026-08-28 comes out 0.933 against NASA's 0.930. Inside it, the Moon gets the
 sunlight Earth's atmosphere bends in: deep red near the axis, copper towards the
 edge. That glow is a chosen colour, not a computed one. On the Moon the lit share
-is mapped on a log scale, as the eye sees it next to an umbra ~10,000 times
-darker: otherwise the sliver of a partial eclipse, lit by 0.04–3% of the Sun,
-would look black.
+is mapped on a log scale, as the eye sees it next to the umbra, with 1,000:1
+of contrast: the sliver of a partial eclipse, lit by 0.04–3% of the Sun, reads
+5–50% bright instead of black, and the umbra's edge stays a soft ramp, not a step.
+
+A shadow's edge is as soft as physics makes it. The Sun's disc gives the penumbra:
+about 3,500 km wide where Earth's shadow meets the Moon, 5 km where Charon's meets
+Pluto at 34 AU, so Pluto's eclipses (the next season is around 2109) have edges that
+look cut with a knife. Air softens it further: sunlight grazing a caster's limb
+fades out over a band of atmosphere, 0–150 km for Earth (its mean is Danjon's
+1/85), a few hundred km for the giants and Titan's haze, none for airless bodies.
 
 Moons also shade each other. Every moon takes its planet and its sister moons as
 casters, so a moon's shadow falls on its neighbour: around Jupiter's equinox in

@@ -45,6 +45,7 @@ private:
     Texture* clouds = nullptr;       // Earth's cloud cover, drawn over its surface
     Texture* night = nullptr;        // Earth's city lights, on the dark side
     glm::vec3 atmosphere{0.0f};      // limb haze colour x strength, 0 = no air
+    float limbSoftness = 0.0f;       // air above the radius that dims sunlight, over the radius
     glm::dmat3 bodyFrame{1.0};         // mesh axes to world, with the spin
     glm::dmat3 equatorFrame{1.0};      // same without the spin: the frame rings and tilted moons use
     glm::vec3 shape{1.0f};             // per-axis radius over `scale`, mesh axes
@@ -186,6 +187,7 @@ public:
     void setClouds(Texture* map) { clouds = map; }
     void setNight(Texture* map) { night = map; }
     void setAtmosphere(const glm::vec3& haze) { atmosphere = haze; }
+    void setLimbSoftness(float fraction) { limbSoftness = fraction; }
 
     void setRadii(const glm::vec3& radii) {
         scale = std::max(radii.x, std::max(radii.y, radii.z));
@@ -209,6 +211,7 @@ public:
         // Dynamic Eclipse Shadow Casters
         glm::vec3 casterPos[8];
         float casterRadius[8];
+        float casterSoft[8];
         int casterCount = 0;
 
         if (type == BodyType::Planet && parent != nullptr) {
@@ -217,6 +220,7 @@ public:
                     if (sat->isNavigable() && casterCount < 8) {
                         casterPos[casterCount] = sat->getWorldPosition();
                         casterRadius[casterCount] = sat->getScale();
+                        casterSoft[casterCount] = sat->limbSoftness;
                         casterCount++;
                     }
                 }
@@ -224,11 +228,13 @@ public:
                 // The planet, then the other moons: mutual eclipses, a moon's shadow on its neighbour.
                 casterPos[0] = parent->getWorldPosition();
                 casterRadius[0] = parent->getScale();
+                casterSoft[0] = parent->limbSoftness;
                 casterCount = 1;
                 for (const CelestialBody* sat : parent->satellites) {
                     if (sat != this && sat->isNavigable() && casterCount < 8) {
                         casterPos[casterCount] = sat->getWorldPosition();
                         casterRadius[casterCount] = sat->getScale();
+                        casterSoft[casterCount] = sat->limbSoftness;
                         casterCount++;
                     }
                 }
@@ -242,6 +248,7 @@ public:
         if (casterCount > 0) {
             glUniform3fv(locs.shadowCasterPos, casterCount, &casterPos[0][0]);
             glUniform1fv(locs.shadowCasterRadius, casterCount, &casterRadius[0]);
+            glUniform1fv(locs.shadowCasterSoft, casterCount, &casterSoft[0]);
         }
 
         // A planet with rings: their plane and texture, so base.frag can shade their shadow.

@@ -21,6 +21,7 @@ SCENES=(
     "solar_eclipse_2026|2026-08-12T17:46:00|Earth|--azimuth 20 --elevation 65"   # greatest eclipse, shadow off Iceland, heading for Spain
     "lunar_partial|2026-08-28T04:13:00|Moon|--distance 16000"   # umbral magnitude 0.93: thin lit sliver at the top, clear of the HUD
     "lunar_total|2025-09-07T18:11:00|Moon|"
+    "lunar_umbra_edge|2026-08-28T03:30:00|Moon|--distance 6000"   # partial phase up close: the umbra's soft edge
     "saturn_rings|2026-10-21T00:00:00|Saturn|--elevation 30"   # rings only ~8 deg open to the Sun in 2026
     "jupiter_io_shadow|2026-02-05T05:05:00|Jupiter|"  # mid shadow transit
     "earth_night|2026-10-21T21:00:00|Earth|--azimuth 160 --elevation 25"   # city lights of Europe and Africa, blue limb sunwards

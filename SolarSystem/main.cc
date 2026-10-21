@@ -108,6 +108,7 @@ int main(int argc, char** argv) {
         locs.shadowCasterCount   = shader.uniformLocation("shadowCasterCount");
         locs.shadowCasterPos     = shader.uniformLocation("shadowCasterPos");
         locs.shadowCasterRadius  = shader.uniformLocation("shadowCasterRadius");
+        locs.shadowCasterSoft    = shader.uniformLocation("shadowCasterSoft");
         locs.casterHasAtmosphere = shader.uniformLocation("casterHasAtmosphere");
         locs.airless             = shader.uniformLocation("airless");
         locs.hasClouds          = shader.uniformLocation("hasClouds");

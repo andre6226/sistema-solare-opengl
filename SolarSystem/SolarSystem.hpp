@@ -639,6 +639,11 @@ private:
         earth->setClouds(loadTexture("resources/EarthClouds.jpg", false));
         earth->setNight(loadTexture("resources/EarthNight.jpg"));
         earth->setAtmosphere(glm::vec3(0.30f, 0.55f, 1.0f) * 0.45f);
+        // Shadow edges: sunlight grazing the limb fades out over this much air, as a
+        // fraction of the radius. Earth: 0 to 150 km, whose mean 75 km is Danjon's 1/85
+        // widening of the umbra. shortcut: the others are estimates of their haze tops
+        // (giants ~400 km over 1 bar, Titan's haze ~300 km), refine from occultation profiles.
+        earth->setLimbSoftness(2.0f / 85.0f);
         createBody(Astro::Moon, earth);
 
         createBody(Astro::Eros, sun, loadShape("resources/models/Eros.obj"));
@@ -660,6 +665,10 @@ private:
         CelestialBody* saturn  = createBody(Astro::Saturn, sun);
         CelestialBody* uranus  = createBody(Astro::Uranus, sun);
         CelestialBody* neptune = createBody(Astro::Neptune, sun);
+        jupiter->setLimbSoftness(0.006f);
+        saturn->setLimbSoftness(0.007f);
+        uranus->setLimbSoftness(0.016f);
+        neptune->setLimbSoftness(0.016f);
 
         // --- GALILEAN MOONS OF JUPITER ---
         createBody(Astro::Io, jupiter);
@@ -673,7 +682,7 @@ private:
         createBody(Astro::Tethys, saturn);
         createBody(Astro::Dione, saturn);
         createBody(Astro::Rhea, saturn);
-        createBody(Astro::Titan, saturn);
+        createBody(Astro::Titan, saturn)->setLimbSoftness(0.12f);
         createBody(Astro::Iapetus, saturn);
         createBody(Astro::Hyperion, saturn)->setRadii(glm::vec3(180.1f, 102.7f, 133.0f));   // pck00011, mesh x, z, y
 

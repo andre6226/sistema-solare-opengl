@@ -35,6 +35,9 @@ uniform float sunRadius;
 uniform int shadowCasterCount;
 uniform vec3 shadowCasterPos[8];
 uniform float shadowCasterRadius[8];
+// Air over each caster's radius that fades sunlight out, as a fraction of it: the
+// shadow edge is soft over that band, not only over the Sun's penumbra.
+uniform float shadowCasterSoft[8];
 // 1 when the single caster is Earth: its air widens the shadow and bends red light into it.
 uniform float casterHasAtmosphere;
 // 1 for bodies without an atmosphere worth the name: shaded as dusty regolith.
@@ -165,11 +168,20 @@ void main() {
             vec3 toCaster = shadowCasterPos[i] - vWorldPos;
             if (dot(toCaster, toSun) <= 0.0) continue;
             float radius = shadowCasterRadius[i];
-            // Danjon: Earth's lower atmosphere is opaque, its shadow is 1/85 wider.
-            if (casterHasAtmosphere > 0.5) radius *= 1.0 + 1.0 / 85.0;
-            float casterAngle = asin(min(radius / length(toCaster), 1.0));
+            float soft = shadowCasterSoft[i];
+            float casterDistance = length(toCaster);
             float separation = 2.0 * asin(min(0.5 * length(normalize(toCaster) - normalize(toSun)), 1.0));
-            float hidden = discOverlap(sunAngle, casterAngle, separation) / (3.14159265 * sunAngle * sunAngle);
+            // An airless caster is a hard disc; air dims the light over a band above the
+            // radius, averaged here as four discs across it. On Earth the band's mean is
+            // Danjon's 1/85 widening of the shadow.
+            float hidden = 0.0;
+            int layers = (soft > 0.0) ? 4 : 1;
+            for (int k = 0; k < layers; ++k) {
+                float r = radius * (1.0 + soft * (float(k) + 0.5) / float(layers));
+                hidden += discOverlap(sunAngle, asin(min(r / casterDistance, 1.0)), separation);
+            }
+            hidden /= float(layers) * 3.14159265 * sunAngle * sunAngle;
+            float casterAngle = asin(min(radius * (1.0 + 0.5 * soft) / casterDistance, 1.0));
             shadowFactor *= 1.0 - hidden;
             if (casterHasAtmosphere > 0.5) {
                 // Sunlight refracted through Earth's limb: deep red at the axis, copper
@@ -180,10 +192,11 @@ void main() {
         }
     }
     // On the Moon in Earth's shadow, map the lit fraction as the eye does, on a log
-    // scale against an umbra ~10^4 times darker: the sliver of a partial eclipse, lit
-    // by 0.04-3% of the Sun, then reads 18-63% bright instead of black. Seen from
-    // space, Earth keeps the linear penumbra that photos of solar eclipses show.
-    if (casterHasAtmosphere > 0.5) shadowFactor = log(1.0 + 1e4 * shadowFactor) / log(1.0 + 1e4);
+    // scale with 1,000:1 of contrast: the sliver of a partial eclipse, lit by 0.04-3% of
+    // the Sun, then reads 5-50% bright instead of black, and the umbra's edge keeps the
+    // soft ramp photos show. Seen from space, Earth keeps the linear penumbra that
+    // photos of solar eclipses show.
+    if (casterHasAtmosphere > 0.5) shadowFactor = log(1.0 + 1000.0 * shadowFactor) / log(1.0 + 1000.0);
 
     // The rings' shadow: where the ray towards the Sun crosses the ring plane, the
     // light left is what the ring texture lets through at that radius. The branch is
