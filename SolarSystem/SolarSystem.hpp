@@ -374,7 +374,7 @@ private:
             {&Astro::Saturn, Ephemeris::Saturn}, {&Astro::Uranus, Ephemeris::Uranus},
             {&Astro::Neptune, Ephemeris::Neptune}, {&Astro::Pluto, Ephemeris::Pluto}};
 
-        BodyLink link{body, -1, nullptr, shapeModel ? Astro::shapeModelMeshToBody() : Astro::sphereMeshToBody()};
+        BodyLink link{body, -1, nullptr, shapeModel ? Astro::shapeModelMeshToBody() : Astro::sphereMeshToBody(), nullptr, nullptr};
         for (const auto& [d, item] : deBodies) {
             if (d == &data) link.deItem = item;
         }
@@ -419,9 +419,21 @@ private:
                 const auto item = static_cast<Ephemeris::Item>(link.deItem);
                 const Ephemeris::State p = (item == Ephemeris::EarthMoonBarycentre)
                     ? ephemeris.earthForShadows(jdTdb) : ephemeris.heliocentric(item, jdTdb);
-                const double mu = ephemeris.gravitationalParameter(0) + ephemeris.gravitationalParameter(link.deItem + 1);
-                link.body->setEphemerisOffset(toWorld * p.position,
-                    Astro::osculatingBasis(toWorld * p.position, toWorld * p.velocity / Astro::SECONDS_PER_DAY, mu));
+                if (item >= Ephemeris::Saturn) {
+                    // The Sun swings round the barycentre under Jupiter's pull, so heliocentric
+                    // ellipses of the slow outer planets wobble; draw them about the barycentre.
+                    const Ephemeris::State bary = ephemeris.evaluate(item, jdTdb);
+                    double mu = 0.0;
+                    for (int i = 0; i < 10; ++i) mu += ephemeris.gravitationalParameter(i);
+                    Astro::KeplerianBasis b = Astro::osculatingBasis(toWorld * bary.position,
+                                                                     toWorld * bary.velocity / Astro::SECONDS_PER_DAY, mu);
+                    b.focus_world = toWorld * (p.position - bary.position);   // the barycentre, from the Sun
+                    link.body->setEphemerisOffset(toWorld * p.position, b);
+                } else {
+                    const double mu = ephemeris.gravitationalParameter(0) + ephemeris.gravitationalParameter(link.deItem + 1);
+                    link.body->setEphemerisOffset(toWorld * p.position,
+                        Astro::osculatingBasis(toWorld * p.position, toWorld * p.velocity / Astro::SECONDS_PER_DAY, mu));
+                }
             }
 
             if (link.body->getData() == &Astro::Earth) {

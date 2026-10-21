@@ -38,7 +38,7 @@ int main() {
 
     // 3. Astro::clampPickerValues tests
     {
-        int y = 1960, m = 15, d = 35, h = 26, min = 70, s = 90;
+        int y = 1850, m = 15, d = 35, h = 26, min = 70, s = 90;
         Astro::clampPickerValues(y, m, d, h, min, s);
         assert(y == 1900);
         assert(m == 12);
@@ -170,6 +170,41 @@ int main() {
         const double joint = Astro::utcDateTimeToUnix(2026, 1, 1, 0, 0, 0);
         assert(std::abs(Astro::deltaTSeconds(joint + 3600.0) - Astro::deltaTSeconds(joint - 3600.0)) < 0.01);
         assert(Astro::deltaTSeconds(Astro::utcDateTimeToUnix(2200, 1, 1, 0, 0, 0)) > 100.0);
+
+        // Planetary moons, mean orbit + correction table, against JPL Horizons
+        // (planet-centred ICRF km, instants off the tables' sample grid): within 1 km.
+        struct MoonCheck { const char* name; double jd, x, y, z; };
+        int moonsChecked = 0;
+        for (const MoonCheck& c : {
+                                  MoonCheck{"Phobos", 2417848.936849, -3505.880, -8412.562, -2101.356},
+                                  MoonCheck{"Deimos", 2423596.498020, -14485.424, 12721.450, 13349.187},
+                                  MoonCheck{"Io", 2429344.059191, 412520.033, 78588.131, 44325.211},
+                                  MoonCheck{"Europa", 2435091.620362, -475092.891, 421511.872, 197254.258},
+                                  MoonCheck{"Ganymede", 2440839.181534, 21708.514, 966749.834, 458042.909},
+                                  MoonCheck{"Callisto", 2446586.742705, 1324878.500, 1192514.656, 584149.326},
+                                  MoonCheck{"Mimas", 2452334.303876, -150849.842, 113622.996, -584.028},
+                                  MoonCheck{"Enceladus", 2458081.865047, -229492.755, -62430.216, 24319.725},
+                                  MoonCheck{"Dione", 2463829.426219, -58409.827, 372972.553, -22443.410},
+                                  MoonCheck{"Rhea", 2469576.987390, 440852.868, 282644.369, -56418.955},
+                                  MoonCheck{"Titan", 2475324.548561, -506334.671, -1125553.300, 119398.690},
+                                  MoonCheck{"Iapetus", 2481072.109732, 1061669.791, -3280544.895, -869657.829},
+                                  MoonCheck{"Miranda", 2486819.670903, -51396.163, 41012.752, -111986.356},
+                                  MoonCheck{"Ariel", 2492567.232075, -21494.797, 55326.757, -181497.999},
+                                  MoonCheck{"Umbriel", 2498314.793246, 158225.555, -89820.097, 194934.759},
+                                  MoonCheck{"Titania", 2504062.354417, -179155.364, -67403.999, 393223.505},
+                                  MoonCheck{"Oberon", 2509809.915588, 260537.176, 83640.295, -514680.152},
+                                  MoonCheck{"Triton", 2515557.476760, 209606.852, 282114.469, -47959.890},
+                                  MoonCheck{"Charon", 2521305.037931, 9140.228, 6099.864, -16224.129}}) {
+            for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
+                if (std::string(s.name) != c.name) continue;
+                const Astro::KeplerianBasis b = Astro::satelliteBasis(s, c.jd - Astro::J2000_EPOCH_JD);
+                const glm::dvec3 p = Astro::evaluateOrbitVertex(b, b.E_rad)
+                    + MoonTable(std::string("resources/moons/") + c.name + ".bin").offset(c.jd);
+                assert(glm::length(p - glm::dvec3(c.x, c.y, c.z)) < 1.0);
+                ++moonsChecked;
+            }
+        }
+        assert(moonsChecked == 19);
 
         // Mars 1.03 days
         const double T_mars = T0 + 1.03 / Astro::DAYS_PER_JULIAN_CENTURY;

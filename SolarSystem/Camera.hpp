@@ -37,12 +37,13 @@ public:
         if (elevation < -89.0f) elevation = -89.0f;
     }
 
-    // Call on every target change: recomputes zoom bounds and near/far frustum
-    // from the target bounding radius and frames the body at 4 radii away.
+    // Call on every target change: recomputes the close zoom bound and near plane
+    // from the target bounding radius and frames the body at 4 radii away; zooming
+    // out always reaches the whole solar system.
     void focusOn(float targetRadius) {
-        minDistance = 2.0f * targetRadius;
-        maxDistance = 50.0f * targetRadius;
-        nearPlane   = targetRadius * 0.5f;
+        minDistance = 1.1f * targetRadius;   // skim the surface
+        maxDistance = 1.5e10f;               // ~100 AU: past Eris at aphelion, inside the 2.5e10 km sky sphere
+        nearPlane   = targetRadius * 0.01f;
         farPlane    = 3.0e10f;
         distance    = std::clamp(4.0f * targetRadius, minDistance, maxDistance);
     }

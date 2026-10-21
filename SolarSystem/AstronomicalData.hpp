@@ -89,6 +89,7 @@ namespace Astro {
         double e = 0.0;          // Current eccentricity
         double M_rad = 0.0;      // Mean anomaly in radians
         double E_rad = 0.0;      // Eccentric anomaly in radians
+        glm::dvec3 focus_world{0.0}; // Where the ellipse's focus sits relative to the parent
     };
 
     inline KeplerianBasis evaluateKeplerianBasis(const KeplerianElements& el, double T) {

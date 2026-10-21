@@ -189,7 +189,7 @@ public:
             for (int k = 0; k < NUM_SEGMENTS; ++k) {
                 const double Ek = basis.E_rad + static_cast<double>(k) * step;
                 const glm::dvec3 vRel = Astro::evaluateOrbitVertex(basis, Ek);
-                const glm::vec3 vRender = glm::vec3((parentExact - origin) + vRel);
+                const glm::vec3 vRender = glm::vec3((parentExact - origin) + basis.focus_world + vRel);
                 vertexBuffer.push_back(vRender);
             }
 

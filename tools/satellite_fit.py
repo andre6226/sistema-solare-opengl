@@ -8,11 +8,12 @@ Kepler ellipse whose node and periapsis precess linearly; mean longitude
 lambda0 + n t + n2 t^2 plus up to three resonance librations A sin(phi + nu t).
 Usage: satellite_fit.py <cache dir> SolarSystem/SatelliteOrbits.hpp"""
 import json, os, sys, time, urllib.parse, urllib.request
+from multiprocessing import Pool
 import numpy as np
 from scipy.optimize import least_squares
 
 J2000 = 2451545.0
-JD_FIRST, JD_LAST = 2451544.5, 2524593.5   # stages grow from 2000-01-01; Triton/Charon stop 2199-12-30
+JD_FIRST, JD_LAST = 2451544.5, 2524589.5   # stages grow from 2000-01-01; JPL's Triton and Charon stop 2199-12-29
 JD_1900 = 2415020.5
 
 # name, NAIF id, centre id, period (d), initial Laplace pole RA/Dec (deg)
@@ -36,12 +37,12 @@ def horizons(cache, target, centre, start, stop, intervals):
                   'STEP_SIZE': "'%d'" % intervals, 'REF_PLANE': "'FRAME'", 'REF_SYSTEM': "'ICRF'",
                   'VEC_TABLE': "'1'", 'CSV_FORMAT': "'YES'", 'OUT_UNITS': "'KM-S'", 'TIME_TYPE': "'TDB'"}
         url = 'https://ssd.jpl.nasa.gov/api/horizons.api?' + urllib.parse.urlencode(params)
-        for attempt in range(5):
+        for attempt in range(8):
             try:
-                text = json.load(urllib.request.urlopen(url, timeout=120))['result']
+                text = json.load(urllib.request.urlopen(url, timeout=600))['result']
                 break
             except Exception:
-                time.sleep(5 * (attempt + 1))
+                time.sleep(30 * (attempt + 1))
         else:
             raise RuntimeError('Horizons failed for %d' % target)
         if '$$SOE' not in text:
@@ -92,9 +93,14 @@ def model(p, t):
     return np.outer(local[0], X) + np.outer(local[1], Y) + np.outer(local[2], Z)
 
 
-def fit(p, t, xyz, scale):
-    res = lambda q: ((model(q, t) - xyz) / scale).ravel()
-    return least_squares(res, p, method='lm', x_scale='jac', max_nfev=4000).x
+def fit(p, t, xyz, scale, free_pole=True):
+    # On short arcs the Laplace pole trades off against inclination and node (one
+    # plane, many descriptions), so it stays at JPL's value until the node has moved.
+    if free_pole:
+        res = lambda q: ((model(q, t) - xyz) / scale).ravel()
+        return least_squares(res, p, method='lm', x_scale='jac', max_nfev=4000).x
+    res = lambda q: ((model(np.concatenate([p[:2], q]), t) - xyz) / scale).ravel()
+    return np.concatenate([p[:2], least_squares(res, p[2:], method='lm', x_scale='jac', max_nfev=4000).x])
 
 
 def errors_deg(p, t, xyz):
@@ -162,14 +168,14 @@ def fit_moon(cache, name, target, centre, period, ra0, dec0):
             for lam0 in np.linspace(0, 2 * np.pi, 12, endpoint=False):
                 for pq in ([0.01, 0.01], [3.0, 3.0]):    # prograde and retrograde starts
                     trial = fit(np.array([np.radians(ra0), np.radians(dec0), a, 0.001, 0.001, 0.0, *pq, 0.0, lam0,
-                                          2 * np.pi / period, 0.0]), t, xyz, a)
+                                          2 * np.pi / period, 0.0]), t, xyz, a, free_pole=False)
                     err = errors_deg(trial, t, xyz).max()
                     if best is None or err < best[0]:
                         best = (err, trial)
             p = best[1]
         else:
             p = fix_longitude(p, t, xyz)
-            p = fit(p, t, xyz, a)
+            p = fit(p, t, xyz, a, free_pole=span > 365.25 * 100)
     # Independent check on a dense, unseen stretch late in the span.
     tv, xv = horizons(cache, target, centre, 2506000.5, 2506000.5 + 40 * period, 2000)
     return p, errors_deg(p, t, xyz), errors_deg(p, tv, xv)
@@ -179,15 +185,16 @@ def main(cache, out):
     os.makedirs(cache, exist_ok=True)
     rows = []
     only = os.environ.get('ONLY', '').split(',')
-    for name, target, centre, period, ra0, dec0 in MOONS:
-        if only != [''] and name not in only:
-            continue
-        p, err, check = fit_moon(cache, name, target, centre, period, ra0, dec0)
+    moons = [m for m in MOONS if only == [''] or m[0] in only]
+    with Pool(min(8, len(moons))) as pool:
+        results = pool.starmap(fit_moon, [(cache, *m) for m in moons])
+    for (name, *_), (p, err, check) in zip(moons, results):
         print('%-10s max %.3f deg  rms %.3f deg  unseen-2149 max %.3f deg  librations %d'
               % (name, err.max(), np.sqrt(np.mean(err ** 2)), check.max(), (len(p) - 12) // 3), flush=True)
+        p = [float(x) for x in p]   # plain floats: numpy 2 reprs as np.float64(...)
         ra, dec, a, h, k, wdot, pp, qq, odot, lam0, n, n2 = p[:12]
         terms = ', '.join('{%r, %r, %r}' % tuple(p[j:j + 3]) for j in range(12, len(p), 3))
-        rows.append('        {"%s", %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, {%s}}  // max error %.2f deg' % (
+        rows.append('        {"%s", %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, {%s}},  // max error %.2f deg' % (
             name, ra, dec, a, np.hypot(h, k), np.arctan2(h, k), wdot, 2 * np.arctan(np.hypot(pp, qq)),
             np.arctan2(pp, qq), odot, lam0, n, n2, max(err.max(), check.max()), terms, max(err.max(), check.max())))
     with open(out, 'w') as f:
@@ -220,7 +227,7 @@ namespace Astro {
         return table;
     }
 }
-''' % ',\n'.join(rows))
+''' % '\n'.join(rows))
 
 
 if __name__ == '__main__':

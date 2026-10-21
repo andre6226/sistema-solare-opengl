@@ -9,12 +9,13 @@ segment x, y, z coefficient runs as float32 (km, ICRF).
 Usage: satellite_tables.py <cache dir> SolarSystem/SatelliteOrbits.hpp resources/moons"""
 import os, re, struct, sys
 import numpy as np
+from multiprocessing import Pool
 from numpy.polynomial import chebyshev as cheb
 import satellite_fit as sf
 
 TARGET_KM = 0.8          # leaves margin under the 1 km promise
 JD_START = 2415020.5     # 1900-01-01
-JD_STOP = 2524593.5      # 2199-12-29, where Triton and Charon end
+JD_STOP = 2524589.5      # 2199-12-29: JPL's Triton and Charon end there; later the last segment is held
 CHUNK = 60000            # Horizons rows per request
 
 
@@ -26,71 +27,99 @@ def fitted_params(header):
         ra, dec, a, e, varpi, wdot, inc, node, odot, lam0, n, n2 = v[:12]
         p = [ra, dec, a, e * np.sin(varpi), e * np.cos(varpi), wdot, np.tan(inc / 2) * np.sin(node),
              np.tan(inc / 2) * np.cos(node), odot, lam0, n, n2]
-        for lib in re.findall(r'\{([^{}]*)\}', m.group(3)):
-            p += [float(x) for x in lib.split(',')]
+        for lib in re.findall(r'\{?([^{}]+)', m.group(3)):  # the last term's '}' went with the '}}'
+            if not lib.strip(', '):
+                continue
+            p += [float(x) for x in lib.split(',') if x.strip()]
         out[m.group(1)] = np.array(p)
     return out
 
 
-def segment_fit(t, r, start, seg, nc):
-    idx = np.floor((t - start) / seg).astype(int)
-    coeffs, worst = {}, 0.0
-    for s in np.unique(idx):
-        k = idx == s
-        x = 2.0 * (t[k] - (start + s * seg)) / seg - 1.0
-        c = np.array([cheb.chebfit(x, r[k, a], nc - 1) for a in range(3)], dtype=np.float32)
-        worst = max(worst, np.abs(np.array([cheb.chebval(x, c[a].astype(float)) for a in range(3)]).T - r[k]).max())
-        coeffs[s] = c
-    return coeffs, worst
+def segment_fit(t, r, start, seg, nc, pad, only=None):
+    """Per-segment Chebyshev fit; pad extra samples on each side pin the segment edges."""
+    coeffs = {}
+    for s in (np.unique(np.floor((t - start) / seg).astype(int)) if only is None else only):
+        lo = max(np.searchsorted(t, start + s * seg) - pad, 0)
+        hi = np.searchsorted(t, start + (s + 1) * seg) + pad
+        x = 2.0 * (t[lo:hi] - (start + s * seg)) / seg - 1.0
+        coeffs[s] = np.array([cheb.chebfit(x, r[lo:hi, a], nc - 1) for a in range(3)], dtype=np.float32)
+    return coeffs
 
 
-def choose_layout(cache, moon, p):
-    """Cheapest (segment, coefficients) meeting the target on a dense sample."""
+def evaluate(coeffs, start, seg, t):
+    u = (t - start) / seg
+    s = np.floor(u).astype(int)
+    x = 2.0 * (u - s) - 1.0
+    return np.array([[cheb.chebval(x[i], coeffs[s[i]][a].astype(float)) for a in range(3)] for i in range(len(t))])
+
+
+# Download grid per moon: segment in orbital periods, coefficients (2 samples each).
+# Picked once on 40 orbits of 2023; pinned so that the cached Horizons replies stay valid.
+SAMPLING = {'Phobos': (2, 14), 'Deimos': (2, 14), 'Io': (1, 12), 'Europa': (1, 12), 'Ganymede': (0.25, 8),
+            'Callisto': (0.25, 12), 'Mimas': (0.5, 8), 'Enceladus': (1, 12), 'Dione': (1, 12), 'Rhea': (1, 12),
+            'Titan': (0.5, 10), 'Iapetus': (0.125, 12), 'Miranda': (1, 10), 'Ariel': (1, 14), 'Umbriel': (1, 12),
+            'Titania': (0.5, 10), 'Oberon': (0.5, 12), 'Triton': (1, 8), 'Charon': (2, 8)}
+
+
+def build(cache, moon, p, out_dir):
     name, target, centre, period = moon[:4]
-    t, xyz = sf.horizons(cache, target, centre, 2460000.5, 2460000.5 + 40 * period, 8000)
-    r = xyz - sf.model(p, t)
+    seg, nc = SAMPLING[name][0] * period, SAMPLING[name][1]
+    samples = 2 * nc                       # per download segment, ~2x oversampled
+    step = seg / samples
+    total = int(np.ceil((JD_STOP - JD_START) / seg)) * samples
+    chunk = (CHUNK // samples) * samples   # whole segments per request
+    t, r = [], []
+    for first in range(0, total, chunk):
+        n = min(chunk, total - first)
+        a = JD_START + (first + 0.5) * step  # mid-steps, so no row sits on a segment edge
+        try:
+            tc, xyz = sf.horizons(cache, target, centre, a, a + (n - 1) * step, n - 1)
+        except RuntimeError as e:  # Charon's JPL coverage ends right at JD_STOP: stop the last request there
+            if 'No ephemeris' not in str(e):
+                raise
+            n = int((JD_STOP - a) / step) + 1
+            tc, xyz = sf.horizons(cache, target, centre, a, a + (n - 1) * step, n - 1)
+        t.append(tc)
+        r.append(xyz - sf.model(p, tc))
+    t, r = np.concatenate(t), np.concatenate(r)
+    # The 2023 sample underrates 300 years of residual: pick the stored layout on
+    # JPL points off the download grid, refitting the downloaded samples.
+    th, xyz = sf.horizons(cache, target, centre, JD_START + 0.1234567, JD_STOP - 0.3712, 1499)
+    rh = xyz - sf.model(p, th)
+    start = JD_START - sf.J2000
     best = None
-    for seg in period * np.array([4.0, 2.0, 1.0, 0.5, 0.25, 0.125]):
-        for nc in (8, 10, 12, 14):
-            start = 2460000.5
-            _, worst = segment_fit(t[t < start + seg * int(40 * period / seg)], r[t < start + seg * int(40 * period / seg)], start, seg, nc)
-            size = (JD_STOP - JD_START) / seg * 3 * nc * 4
+    for split in (1, 2, 3, 4):
+        for k in (6, 8, 10, 12, 14):
+            if samples / split + 2 < k + 2:
+                continue
+            sub = seg / split
+            c = segment_fit(t, r, start, sub, k, 1, np.unique(((th - start) / sub).astype(int)))
+            worst = np.linalg.norm(evaluate(c, start, sub, th) - rh, axis=1).max()
+            size = (JD_STOP - JD_START) / sub * 3 * k * 4
             if worst < TARGET_KM and (best is None or size < best[2]):
-                best = (seg, nc, size)
-    return best
+                best = (sub, k, size, worst)
+    assert best, name + ': no layout under target'
+    sub, k, size, worst = best
+    count = int(np.ceil((JD_STOP - JD_START) / sub))
+    coeffs = segment_fit(t, r, start, sub, k, 1)
+    missing = [s for s in range(count) if s not in coeffs]
+    assert not missing, (name, missing[:5])
+    with open(os.path.join(out_dir, name + '.bin'), 'wb') as f:
+        f.write(b'MOONCHEB')
+        f.write(struct.pack('<2d2i', JD_START, sub, count, k))
+        for s in range(count):
+            f.write(coeffs[s].tobytes())
+    return '%-10s segment %.4f d  %2d coeffs  %6.1f MB  selection max %.3f km' % (name, sub, k, size / 1e6, worst)
 
 
 def main(cache, header, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     params = fitted_params(header)
     only = os.environ.get('ONLY', '').split(',')
-    for moon in sf.MOONS:
-        name, target, centre = moon[:3]
-        if only != [''] and name not in only:
-            continue
-        p = params[name]
-        seg, nc, size = choose_layout(cache, moon, p)
-        count = int(np.ceil((JD_STOP - JD_START) / seg))
-        samples = 2 * nc                       # per segment, ~2x oversampled
-        step = seg / samples
-        total = count * samples
-        coeffs, worst = {}, 0.0
-        chunk = (CHUNK // samples) * samples   # whole segments per request
-        for first in range(0, total, chunk):
-            n = min(chunk, total - first)
-            a = JD_START + (first + 0.5) * step  # sample mid-steps so no row sits on a segment edge
-            t, xyz = sf.horizons(cache, target, centre, a, a + (n - 1) * step, n - 1)
-            c, w = segment_fit(t, xyz - sf.model(p, t), JD_START - sf.J2000, seg, nc)
-            coeffs.update(c)
-            worst = max(worst, w)
-        missing = [s for s in range(count) if s not in coeffs]
-        assert not missing, (name, missing[:5])
-        with open(os.path.join(out_dir, name + '.bin'), 'wb') as f:
-            f.write(b'MOONCHEB')
-            f.write(struct.pack('<2d2i', JD_START, seg, count, nc))
-            for s in range(count):
-                f.write(coeffs[s].tobytes())
-        print('%-10s segment %.4f d  %2d coeffs  %6.1f MB  worst %.3f km' % (name, seg, nc, size / 1e6, worst), flush=True)
+    moons = [m for m in sf.MOONS if only == [''] or m[0] in only]
+    with Pool(min(6, len(moons))) as pool:
+        for line in pool.starmap(build, [(cache, m, params[m[0]], out_dir) for m in moons]):
+            print(line, flush=True)
 
 
 if __name__ == '__main__':
