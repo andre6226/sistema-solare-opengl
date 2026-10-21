@@ -116,7 +116,7 @@ void main() {
     vec4 texColor = texture(bodyTexture, uv);
 
     // The alpha test only concerns the rings.
-    if (isRing && (outsideAnnulus || texColor.a < 0.1 || length(texColor.rgb) < 0.15)) {
+    if (isRing && (outsideAnnulus || texColor.a < 0.004)) {
         discard;
     }
 
@@ -207,7 +207,7 @@ void main() {
         float r = length(vWorldPos + toSun * t - ringCenter) / ringOuterRadius;
         vec4 ring = texture(ringTexture, vec2(clamp((r - RING_INNER) / (RING_OUTER - RING_INNER), 0.0, 1.0), 0.5));
         // Same cut as the ring pass: what it discards casts nothing.
-        bool opaque = ring.a >= 0.1 && length(ring.rgb) >= 0.15;
+        bool opaque = ring.a >= 0.004;
         if (t > 0.0 && r >= RING_INNER && r <= RING_OUTER && opaque) {
             // Sunlight crosses the ring at a slant: e^-tau/mu0, darker the lower the Sun.
             float blocked = 1.0 - exp(log(max(1.0 - ring.a, 0.002)) / max(abs(dot(toSun, ringNormal)), 0.002));
