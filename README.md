@@ -89,7 +89,9 @@ relative to the solar-system barycentre and are turned into heliocentric ones by
 subtracting the Sun at the same instant. That is an exact change of origin, so
 the Sun sits still at the centre of the scene while every relative position
 stays JPL's. Earth is separated from the Earth–Moon barycentre with the DE440
-mass ratio.
+mass ratio. DE440's Pluto is likewise the Pluto–Charon barycentre, 2,100 km
+outside Pluto: the app moves it to Pluto's centre using Charon's position and
+mass, which puts both within 0.3 km of JPL.
 
 ### Time
 

@@ -398,6 +398,19 @@ private:
         links.push_back(link);
     }
 
+    // DE440's Pluto is the Pluto-Charon barycentre, 2,100 km from Pluto: Charon (PLU060
+    // GM 106.10 km^3/s^2) pulls it that way. Nix, Hydra and the rest add under 1 km.
+    glm::dvec3 plutoCentreOffset(int item, double jdTdb) const {
+        if (item != Ephemeris::Pluto) return glm::dvec3(0.0);
+        for (const BodyLink& m : links) {
+            if (m.moon == nullptr || std::string(m.moon->name) != "Charon") continue;
+            const Astro::KeplerianBasis b = Astro::satelliteBasis(*m.moon, jdTdb - Astro::J2000_EPOCH_JD);
+            const glm::dvec3 charon = Astro::evaluateOrbitVertex(b, b.E_rad) + m.moonTable->offset(jdTdb);
+            return charon * (106.10 / ephemeris.gravitationalParameter(9));
+        }
+        return glm::dvec3(0.0);
+    }
+
     // Positions from DE440 and orientations from the IAU models at the current clock.
     void applyEphemeris() {
         const double jdUt  = Astro::unixToJulianDate(simTimeSeconds);   // UTC stands in for UT1 (< 1 s)
@@ -412,8 +425,8 @@ private:
                     Astro::osculatingBasis(toWorld * m.position, toWorld * m.velocity / Astro::SECONDS_PER_DAY,
                                            ephemeris.gravitationalParameter(3)));
             } else if (link.moon != nullptr) {
-                // shortcut: DE440 places Pluto (and each giant) at its system barycentre,
-                // 2,100 km from Pluto's centre; the giants' offsets are under 300 km.
+                // shortcut: DE440 places each giant at its system barycentre, under 300 km
+                // from its centre (Pluto, 2,100 km off, is moved to its centre below).
                 Astro::KeplerianBasis b = Astro::satelliteBasis(*link.moon, jdTdb - Astro::J2000_EPOCH_JD);
                 b.P_world = toWorld * b.P_world;
                 b.Q_world = toWorld * b.Q_world;
@@ -440,7 +453,7 @@ private:
                     Astro::KeplerianBasis b = Astro::osculatingBasis(toWorld * bary.position,
                                                                      toWorld * bary.velocity / Astro::SECONDS_PER_DAY, mu);
                     b.focus_world = toWorld * (p.position - bary.position);   // the barycentre, from the Sun
-                    link.body->setEphemerisOffset(toWorld * p.position, b);
+                    link.body->setEphemerisOffset(toWorld * (p.position - plutoCentreOffset(item, jdTdb)), b);
                 } else {
                     const double mu = ephemeris.gravitationalParameter(0) + ephemeris.gravitationalParameter(link.deItem + 1);
                     link.body->setEphemerisOffset(toWorld * p.position,

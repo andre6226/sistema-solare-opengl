@@ -206,6 +206,20 @@ int main() {
         }
         assert(moonsChecked == 19);
 
+        // Pluto's centre: DE440's Pluto-Charon barycentre minus Charon's pull (as in
+        // SolarSystem::plutoCentreOffset), against JPL Horizons body 999: within 1 km.
+        {
+            const double jd = 2459324.825000;
+            const glm::dvec3 jpl(2151452480.741, -4217531964.625, -1964164356.060);
+            for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
+                if (std::string(s.name) != "Charon") continue;
+                const Astro::KeplerianBasis b = Astro::satelliteBasis(s, jd - Astro::J2000_EPOCH_JD);
+                const glm::dvec3 charon = Astro::evaluateOrbitVertex(b, b.E_rad) + MoonTable("resources/moons/Charon.bin").offset(jd);
+                const glm::dvec3 pluto = eph.heliocentric(Ephemeris::Pluto, jd).position - charon * (106.10 / eph.gravitationalParameter(9));
+                assert(glm::length(pluto - jpl) < 1.0);
+            }
+        }
+
         // Asteroids and dwarf planets: barycentric table minus the DE440 Sun, against
         // JPL Horizons heliocentric ICRF km (short requests, off the table grid): within 1 km.
         struct BodyCheck { const Astro::BodyData* body; double jd, x, y, z; };
