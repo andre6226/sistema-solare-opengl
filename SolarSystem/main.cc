@@ -122,6 +122,7 @@ int main(int argc, char** argv) {
         locs.shadowCasterSoft    = shader.uniformLocation("shadowCasterSoft");
         locs.casterHasAtmosphere = shader.uniformLocation("casterHasAtmosphere");
         locs.airless             = shader.uniformLocation("airless");
+        locs.cometTail           = shader.uniformLocation("cometTail");
         locs.hasClouds          = shader.uniformLocation("hasClouds");
         locs.hasNight           = shader.uniformLocation("hasNight");
         locs.bodyPole           = shader.uniformLocation("bodyPole");

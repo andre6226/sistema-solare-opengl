@@ -42,6 +42,9 @@ uniform float shadowCasterSoft[8];
 uniform float casterHasAtmosphere;
 // 1 for bodies without an atmosphere worth the name: shaded as dusty regolith.
 uniform float airless;
+// Comet tails: x 0 for the gas (ion) tail with the coma, 1 for the dust tail; y how far
+// the dust tail bends sideways, towards where the comet came from.
+uniform vec2 cometTail;
 // Earth only: cloud cover (grey = opacity, loaded linear), fixed to the ground.
 uniform sampler2D cloudTexture;
 uniform float hasClouds;
@@ -86,13 +89,27 @@ void main() {
         float x = vTexCoord.x;
         float y = abs(vTexCoord.y - 0.5) * 2.0;
         float s = max(x - head, 0.0) / (1.0 - head);          // along the tail
-        float width = 0.04 + 0.96 * sqrt(s);
-        float tail = exp(-4.0 * s) * exp(-pow(y / width, 2.0) * 5.0) * smoothstep(0.0, 0.01, s);
-        // Coma radius over the quad's half width: 0.012 / 0.16 in SolarSystem::drawCometTail.
-        float r = length(vec2((x - head) / head, y / 0.075));
-        float coma = exp(-r * r * 3.0);
-        vec3 c = mix(vec3(1.0, 0.95, 0.85), vec3(0.55, 0.72, 1.0), smoothstep(0.0, 0.6, s)) * (0.5 * tail + 0.9 * coma);
-        float a = clamp(max(tail, coma), 0.0, 1.0) * airless;
+        vec3 c;
+        float a;
+        if (cometTail.x < 0.5) {
+            // Gas: ions blown straight out by the solar wind, narrow, blue (CO+ glow).
+            float width = 0.02 + 0.25 * sqrt(s);
+            float tail = exp(-2.5 * s) * exp(-pow(y / width, 2.0) * 5.0) * smoothstep(0.0, 0.01, s);
+            // Coma radius over the quad's half width: 0.012 / 0.16 in SolarSystem::drawCometTail.
+            float r = length(vec2((x - head) / head, y / 0.075));
+            float coma = exp(-r * r * 3.0);
+            c = vec3(0.45, 0.65, 1.0) * 0.45 * tail + vec3(1.0, 0.95, 0.85) * 0.9 * coma;
+            a = clamp(max(tail, coma), 0.0, 1.0);
+        } else {
+            // Dust: pushed gently by sunlight, it lags behind on the orbit, so the tail is
+            // broad, curved and yellowish (sunlight scattered off grains).
+            float yc = abs(vTexCoord.y - 0.5 - 0.5 * cometTail.y * s * s) * 2.0;
+            float width = 0.05 + 0.6 * sqrt(s);
+            float tail = exp(-3.5 * s) * exp(-pow(yc / width, 2.0) * 3.0) * smoothstep(0.0, 0.02, s);
+            c = vec3(1.0, 0.92, 0.75) * 0.55 * tail;
+            a = clamp(tail, 0.0, 1.0);
+        }
+        a *= airless;
         FragColor = vec4(c * airless, a);
         return;
     }

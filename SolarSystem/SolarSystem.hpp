@@ -429,28 +429,39 @@ private:
         const float length = std::min(1.0e7f / (rAu * rAu), 3.0e7f);
         const float coma = 0.012f * length;                      // ~1e5 km at 1 AU
         const glm::vec3 axis = fromSun / glm::length(fromSun);
-        glm::vec3 side = glm::cross(axis, cameraPosition - head);
-        if (glm::dot(side, side) < 1e-12f) side = glm::cross(axis, glm::vec3(0.0f, 1.0f, 0.0f));
-        side = glm::normalize(side);
         const float halfLength = 0.5f * (length + coma);
         const float halfWidth = 0.16f * length;
-        // Quad x runs from the coma's back edge (-1) to the tail's end (+1), z across.
-        glm::mat4 model(1.0f);
-        model[0] = glm::vec4(axis * halfLength, 0.0f);
-        model[1] = glm::vec4(glm::cross(side, axis), 0.0f);
-        model[2] = glm::vec4(side * halfWidth, 0.0f);
-        model[3] = glm::vec4(head + axis * (halfLength - coma), 1.0f);
+        // Where the comet came from, across the anti-Sun axis: the dust lags that way.
+        const Astro::KeplerianBasis& orbit = halley->getOrbitBasis();
+        const glm::vec3 velocity(glm::normalize(-std::sin(orbit.E_rad) * orbit.P_world
+                                                + std::sqrt(1.0 - orbit.e * orbit.e) * std::cos(orbit.E_rad) * orbit.Q_world));
+        const glm::vec3 behind = -velocity - axis * glm::dot(-velocity, axis);
         const glm::mat3 identityNormal(1.0f);
 
         glDepthMask(GL_FALSE);
         glDisable(GL_CULL_FACE);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-        glUniformMatrix4fv(locs.model, 1, GL_FALSE, &model[0][0]);
         glUniformMatrix3fv(locs.normalMatrix, 1, GL_FALSE, &identityNormal[0][0]);
         glUniform1i(locs.bodyType, static_cast<int>(BodyType::CometTail));
         glUniform1f(locs.parentRadius, coma / (length + coma));   // where the nucleus sits along the quad
         glUniform1f(locs.airless, activity);
-        ringGeometry.draw();
+        for (int dust = 1; dust >= 0; --dust) {
+            // The dust tail leans ~25 deg off the anti-Sun line towards the orbit behind.
+            const glm::vec3 dir = dust ? glm::normalize(axis + 0.45f * behind) : axis;
+            glm::vec3 side = glm::cross(dir, cameraPosition - head);
+            if (glm::dot(side, side) < 1e-12f) side = glm::cross(dir, glm::vec3(0.0f, 1.0f, 0.0f));
+            side = glm::normalize(side);
+            // Quad x runs from the coma's back edge (-1) to the tail's end (+1), z across.
+            glm::mat4 model(1.0f);
+            model[0] = glm::vec4(dir * halfLength, 0.0f);
+            model[1] = glm::vec4(glm::cross(side, dir), 0.0f);
+            model[2] = glm::vec4(side * halfWidth, 0.0f);
+            model[3] = glm::vec4(head + dir * (halfLength - coma), 1.0f);
+            glUniformMatrix4fv(locs.model, 1, GL_FALSE, &model[0][0]);
+            // The bend, seen on screen: how much of "behind" lies along the quad's width.
+            glUniform2f(locs.cometTail, float(dust), dust ? 0.6f * glm::dot(glm::normalize(behind + 1e-9f), side) : 0.0f);
+            ringGeometry.draw();
+        }
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_CULL_FACE);
         glDepthMask(GL_TRUE);

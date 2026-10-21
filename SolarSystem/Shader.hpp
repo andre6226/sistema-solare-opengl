@@ -147,6 +147,7 @@ struct UniformLocations {
     GLint shadowCasterSoft;
     GLint casterHasAtmosphere;
     GLint airless;
+    GLint cometTail;
     GLint hasClouds;   // Earth only
     GLint hasNight;    // Earth only: city lights
     GLint bodyPole;    // Earth only: north pole, world axes

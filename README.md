@@ -270,10 +270,13 @@ ellipses these tables replace were off by tens of degrees (Ceres by 80° in 2026
 
 Halley moves on JPL's own solution, non-gravitational forces included, sampled
 every 6 hours: inside 0.6 AU of the Sun a day is too coarse to fit. Its nucleus is
-a 15 x 7 x 7 km ellipsoid and as dark as coal. From 3 AU in, a coma and a tail grow
-away from the Sun, about 10 million km long at 1 AU and longer as the inverse square
-of the distance. The tail is straight and points straight away from the Sun: no
-curved dust tail, no separate ion tail.
+a 15 x 7 x 7 km ellipsoid and as dark as coal. From 3 AU in, a coma and two tails grow,
+about 10 million km long at 1 AU and longer as the inverse square of the distance.
+The gas (ion) tail is narrow and blue and points straight away from the Sun, blown
+by the solar wind. The dust tail is broad and yellowish, leans about 25° off that
+line towards where the comet came from and curves further back, since sunlight
+pushes the grains only gently and they lag behind on the orbit. Both are drawn
+shapes, not a particle simulation.
 
 The main belt is ~58,000 points, one per numbered asteroid brighter than H 15 (all
 the ones larger than about 3 km), each on its own Kepler ellipse solved on the GPU.
