@@ -226,7 +226,7 @@ private:
         const std::string entries[] = {
             format("%.0f FPS", frame.fps),
             frame.utcTime,
-            format("TIME  %s\xC3\x97", trimFloat(frame.timeScale).c_str()),
+            format("TIME  %s\xC3\x97%s", trimFloat(frame.timeScale).c_str(), simPerSecond(frame.timeScale).c_str()),
             "DIST  " + formatDistance(frame.cameraDistance),
         };
 
@@ -409,9 +409,18 @@ private:
         return std::string(out.rbegin(), out.rend());
     }
 
+    // Past an hour a second the multiplier alone is hard to read: "  2.4 d/s".
+    static std::string simPerSecond(float scale) {
+        if (scale >= 365.25f * 86400.0f) return format("  %.1f yr/s", scale / (365.25f * 86400.0f));
+        if (scale >= 86400.0f)           return format("  %.1f d/s", scale / 86400.0f);
+        if (scale >= 3600.0f)            return format("  %.1f h/s", scale / 3600.0f);
+        return "";
+    }
+
     // 1 -> "1", 1.5 -> "1.5", 0.004 -> "0.004": keeps the multiplier readable
-    // across the whole 0.001x - 1000x range without a wall of zeros.
+    // across the whole 0.001x - 1000x range without a wall of zeros, whole numbers above.
     static std::string trimFloat(float value) {
+        if (std::abs(value) >= 1000.0f) return format("%.0f", value);
         std::string s = (std::abs(value) < 0.1f) ? format("%.3f", value)
                                                  : format("%.2f", value);
         while (s.size() > 1 && s.back() == '0') s.pop_back();

@@ -72,7 +72,8 @@ and the shaders next to the binary on every build, changed files only.
   and eases into orbit on its lit side, 3 to 9 seconds whatever the distance.
   `UP` parent, `DOWN` first moon, `LEFT`/`RIGHT` siblings jump straight there.
 * **Time:** `T` opens the date picker (1900–2200, UTC); `SHIFT`/`CTRL` speed
-  time up or down, `SPACE` back to real time.
+  time up or down by 1.5× a press, up to 10⁸× (3 years a second), `SPACE` back
+  to real time. Past an hour a second the HUD also shows the rate, e.g. 2.4 d/s.
 * **Orbits:** `O` toggles the orbit lines. The focused body's own orbit is hidden.
 * **Command line** (run from `build/`): `--date 2026-08-12T17:46:00` (UTC),
   `--focus Moon` (camera on the Sun's side of the body), `--azimuth`/`--elevation`

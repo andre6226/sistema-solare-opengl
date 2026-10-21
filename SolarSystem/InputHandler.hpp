@@ -36,7 +36,7 @@ struct InputState {
 class InputHandler {
 private:
     static constexpr float minTimeScale = 0.001f;
-    static constexpr float maxTimeScale = 100000.0f;
+    static constexpr float maxTimeScale = 1.0e8f;   // ~3 years a second: Saturn's year in 10 s
 
 public:
     static void openTimePicker(SolarSystem& system, InputState& state) {
