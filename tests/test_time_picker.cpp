@@ -7,6 +7,7 @@
 #include "../SolarSystem/Ephemeris.hpp"
 #include "../SolarSystem/Hud.hpp"
 #include "../SolarSystem/InputHandler.hpp"
+#include "../SolarSystem/Travel.hpp"
 
 int main() {
     std::cout << "=== Test Time Picker Logic & Astronomy Conversions ===\n";
@@ -263,6 +264,25 @@ int main() {
         assert(venusRot1 > venusRot0);
     }
     std::cout << "[PASS] Astronomical synchronized rotation invariants\n";
+
+    // Flight path: starts and ends in place, continuous at halfway, never backtracks.
+    {
+        const double L = 6.3e8, r0 = 2.5e4, r1 = 2.8e5;   // Earth to Jupiter, both framed at 4 radii
+        assert(travelDistance(0.0, L, r0, r1) == 0.0);
+        assert(std::abs(travelDistance(1.0, L, r0, r1) - L) < 1e-6 * L);
+        assert(std::abs(travelDistance(0.5, L, r0, r1) - 0.5 * L) < 1e-6 * L);
+        assert(std::abs(travelDistance(0.5 + 1e-9, L, r0, r1) - 0.5 * L) < 1e-3 * L);
+        double prev = 0.0;
+        for (int i = 1; i <= 1000; ++i) {
+            const double d = travelDistance(i / 1000.0, L, r0, r1);
+            assert(d >= prev);
+            prev = d;
+        }
+        assert(std::abs(prev - L) < 1e-6 * L);
+        // A tenth of the way in, the camera is still within a few hundred radii of Earth.
+        assert(travelDistance(0.1, L, r0, r1) < 300 * r0);
+    }
+    std::cout << "[PASS] Flight path to a clicked body\n";
 
     std::cout << "\n>>> ALL TIME PICKER UNIT TESTS PASSED SUCCESSFULLY! <<<\n";
     return 0;

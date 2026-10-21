@@ -110,6 +110,14 @@ public:
         }
     }
 
+    const CelestialBody* getTarget() const { return currentTarget; }
+    const CelestialBody* findBody(const std::string& name) const {
+        for (const auto& body : bodies) {
+            if (body->isNavigable() && body->getName() == name) return body.get();
+        }
+        return nullptr;
+    }
+
     bool selectByName(const std::string& name) {
         for (const auto& body : bodies) {
             if (body->isNavigable() && body->getName() == name) {

@@ -62,7 +62,10 @@ and the shaders next to the binary on every build, changed files only.
 
 * **Mouse:** left button to orbit the view, wheel to zoom, from skimming the
   surface out to ~100 AU, where the whole solar system fits on screen.
-* **Navigation:** `UP` parent, `DOWN` first moon, `LEFT`/`RIGHT` siblings.
+* **Navigation:** click a body's dot or label to fly there: the camera turns to
+  it, eases out, rushes through the empty middle with a widening field of view
+  and eases into orbit on its lit side, 3 to 9 seconds whatever the distance.
+  `UP` parent, `DOWN` first moon, `LEFT`/`RIGHT` siblings jump straight there.
 * **Time:** `T` opens the date picker (1900–2200, UTC); `SHIFT`/`CTRL` speed
   time up or down, `SPACE` back to real time.
 * **Orbits:** `O` toggles the orbit lines. The focused body's own orbit is hidden.

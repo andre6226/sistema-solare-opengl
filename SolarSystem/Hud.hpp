@@ -123,7 +123,24 @@ public:
         text.end();
     }
 
+    // The body whose dot or label is under (x, y), or "" for none. Same label
+    // placement as drawMarkers; the closest dot wins where several overlap.
+    std::string markerAt(const std::vector<BodyMarker>& markers, float x, float y) const {
+        std::string best;
+        float bestDist = 1e30f;
+        for (const BodyMarker& m : markers) {
+            if (m.labelAlpha <= 0.05f && m.dotAlpha <= 0.01f) continue;
+            const float lx = m.x + m.radius + 5.0f, ly = m.y + 4.0f;
+            const bool onLabel = x >= lx - 2.0f && x <= lx + text.measure(m.name, markerScale) + 2.0f &&
+                                 y >= ly - 13.0f && y <= ly + 4.0f;
+            const float d = std::hypot(x - m.x, y - m.y);
+            if ((onLabel || d <= m.radius + 8.0f) && d < bestDist) { best = m.name; bestDist = d; }
+        }
+        return best;
+    }
+
 private:
+    static constexpr float markerScale = 0.36f;
     // Authored in sRGB and written straight to the framebuffer: TextRenderer
     // turns the automatic encode off for the duration of the overlay.
     static constexpr glm::vec4 accent{1.00f, 0.72f, 0.30f, 1.00f};
@@ -169,7 +186,7 @@ private:
             if (overlaps) continue;
 
             placedLabels.emplace_back(lx, ly);
-            text.text(m.name, lx, ly, 0.36f, glm::vec4(bright.r, bright.g, bright.b, m.labelAlpha));
+            text.text(m.name, lx, ly, markerScale, glm::vec4(bright.r, bright.g, bright.b, m.labelAlpha));
         }
     }
 
@@ -225,8 +242,8 @@ private:
 
     void drawControls(float height) {
         const std::string hint =
-            "ARROWS  navigate      DRAG  orbit      WHEEL  zoom      "
-            "SHIFT / CTRL  time      SPACE  reset      O  orbits      T  date";
+            "CLICK  fly to    ARROWS  navigate    DRAG  orbit    WHEEL  zoom    "
+            "SHIFT / CTRL  time    SPACE  reset    O  orbits    T  date";
 
         text.text(hint, margin, height - margin, smallScale, dim);
     }

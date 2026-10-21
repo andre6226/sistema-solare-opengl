@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 // This header used to include only <SFML/System/Clock.hpp> and compiled purely
 // because of the lucky include order in main.cc. It now declares its own
 // dependencies and can be included on its own.
@@ -14,6 +15,10 @@ struct InputState {
     float lastMouseX = 0.0f;
     float lastMouseY = 0.0f;
     bool  dragging   = false;
+    // A left press released within a few pixels: a click, for main to hit-test.
+    float pressX = 0.0f, pressY = 0.0f;
+    bool  clickPending = false;
+    float clickX = 0.0f, clickY = 0.0f;
     float timeScale  = 1.0f;
 
     // Interactive Date & Time Picker
@@ -260,13 +265,20 @@ public:
                             continue;
                         }
                         state.dragging = true;
-                        state.lastMouseX = mx;
-                        state.lastMouseY = my;
+                        state.lastMouseX = state.pressX = mx;
+                        state.lastMouseY = state.pressY = my;
                     }
                 }
             }
             else if (const auto* released = event->getIf<sf::Event::MouseButtonReleased>()) {
                 if (released->button == sf::Mouse::Button::Left) {
+                    const float rx = static_cast<float>(released->position.x);
+                    const float ry = static_cast<float>(released->position.y);
+                    if (state.dragging && std::hypot(rx - state.pressX, ry - state.pressY) < 4.0f) {
+                        state.clickPending = true;
+                        state.clickX = rx;
+                        state.clickY = ry;
+                    }
                     state.dragging = false;
                 }
             }

@@ -13,6 +13,7 @@
 #include "SolarSystem.hpp"
 #include "InputHandler.hpp"
 #include "Hud.hpp"
+#include "Travel.hpp"
 
 #include <SFML/System/Clock.hpp>
 #include <SFML/System/Sleep.hpp>
@@ -147,8 +148,28 @@ int main(int argc, char** argv) {
         if (screenshotMode) input.timeScale = 0.0f;   // frozen until a SHIFT/CTRL press
         float smoothedFps = 60.0f;
 
+        // Clicking a body's dot or label flies there; the click is hit-tested against
+        // the markers of the last frame, where the user saw them.
+        Travel travel;
+        std::vector<BodyMarker> lastMarkers;
+        glm::vec3 lastCameraPosition(0.0f), lastForward(0.0f, 0.0f, -1.0f);
+
         while (running) {
             InputHandler::handleEvents(window, camera, solarSystem, running, input);
+
+            if (input.clickPending) {
+                input.clickPending = false;
+                const CelestialBody* destination = solarSystem.findBody(hud.markerAt(lastMarkers, input.clickX, input.clickY));
+                if (destination != nullptr && destination != solarSystem.getTarget()) {
+                    travel.start(solarSystem.getTarget(), destination, lastCameraPosition, lastForward,
+                                 solarSystem.getSunPosition());
+                }
+            }
+            // A target picked from the keyboard mid-flight ends the flight.
+            if (travel.active() && solarSystem.getTarget() != travel.origin() &&
+                solarSystem.getTarget() != travel.destination()) {
+                travel.stop();
+            }
 
             const std::string currentTarget = solarSystem.getTargetName();
 
@@ -182,9 +203,34 @@ int main(int argc, char** argv) {
 
             const float aspectRatio = static_cast<float>(size.x) / static_cast<float>(size.y);
             const glm::vec3 targetPosition = solarSystem.getTargetPosition();
-            const glm::mat4 viewMatrix = camera.getViewMatrix(targetPosition);
-            const glm::mat4 projectionMatrix = camera.getProjectionMatrix(aspectRatio);
-            const glm::vec3 cameraPosition = camera.getPosition(targetPosition);
+            glm::mat4 viewMatrix = camera.getViewMatrix(targetPosition);
+            glm::mat4 projectionMatrix = camera.getProjectionMatrix(aspectRatio);
+            glm::vec3 cameraPosition = camera.getPosition(targetPosition);
+
+            if (travel.active()) {
+                Travel::Pose pose = travel.step(realDelta);
+                if (travel.pastHalfway() && solarSystem.getTarget() != travel.destination()) {
+                    solarSystem.selectByName(travel.destination()->getName());   // recentres the world
+                    pose = travel.pose();
+                }
+                const glm::vec3 up = std::abs(pose.forward.y) > 0.999f ? glm::vec3(1.0f, 0.0f, 0.0f)
+                                                                        : glm::vec3(0.0f, 1.0f, 0.0f);
+                cameraPosition = pose.position;
+                // Rotation from the direction alone, then the translation: lookAt(eye, eye + forward)
+                // collapses to eye == centre in float once eye is ~1e7 km out, and returns NaN.
+                viewMatrix = glm::lookAt(glm::vec3(0.0f), pose.forward, up) * glm::translate(glm::mat4(1.0f), -pose.position);
+                projectionMatrix = glm::perspective(glm::radians(pose.fov), aspectRatio,
+                                                    camera.getNearPlane(), camera.getFarPlane());
+                if (travel.arrived()) {
+                    // Hand over to the orbit camera exactly where the flight ends.
+                    camera.focusOn(travel.destination()->getScale());
+                    camera.setDirection(travel.arrivalDirection());
+                    previousTarget = solarSystem.getTargetName();
+                    travel.stop();
+                }
+            }
+            lastCameraPosition = cameraPosition;
+            lastForward = -glm::vec3(viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2]);
 
             // Known only once the camera has been placed, hence after update().
             solarSystem.updateSkyPosition(cameraPosition);
@@ -205,7 +251,7 @@ int main(int argc, char** argv) {
             hudFrame.data           = solarSystem.getTargetData();
             hudFrame.satelliteCount = solarSystem.getTargetSatelliteCount();
             hudFrame.timeScale      = input.timeScale;
-            hudFrame.cameraDistance = camera.getDistance();
+            hudFrame.cameraDistance = glm::length(cameraPosition - solarSystem.getTargetPosition());   // true mid-flight too
             hudFrame.fps            = smoothedFps;
             hudFrame.utcTime        = Astro::formatUtcDateTime(solarSystem.getSimUnixSeconds());
             hudFrame.timePickerOpen = input.timePickerOpen;
@@ -218,6 +264,7 @@ int main(int argc, char** argv) {
             hudFrame.pickerSec      = input.pickerSec;
             solarSystem.collectMarkers(projectionMatrix * viewMatrix, cameraPosition,
                                        size.x, size.y, hudFrame.markers);
+            lastMarkers = hudFrame.markers;
             hud.draw(hudFrame, size.x, size.y);
 
             glUseProgram(0);
