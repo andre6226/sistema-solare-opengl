@@ -157,6 +157,13 @@ void main() {
     vec3 lightDir = normalize(lightPos - vWorldPos);
     vec3 viewDir  = normalize(cameraPos - vWorldPos);
 
+    // Sunlight falls as 1/d^2; the eye adapts to the light where the camera is (not
+    // nearer the Sun than 0.2 AU), so what it looks at keeps today's exposure and a far
+    // planet in the same view is as much dimmer as it really is: Saturn from near Earth
+    // gets 1/90 of Earth's light.
+    float sunlight = dot(cameraPos - lightPos, cameraPos - lightPos) / dot(vWorldPos - lightPos, vWorldPos - lightPos);
+    sunlight = max(sunlight, 0.04 * 2.2347e16 / dot(vWorldPos - lightPos, vWorldPos - lightPos));   // (0.2 AU)^2 in km^2 floor
+
     vec3 albedo = texColor.rgb;
 
     // Lambert (diffuse)
@@ -165,12 +172,12 @@ void main() {
     // full Io is evenly bright to its limb instead of Lambert-dark there. Cloudy
     // planets keep Lambert, whose darkening limb is what their photos show.
     if (airless > 0.5) diff = 2.0 * diff / (diff + max(dot(normal, viewDir), 0.0) + 1e-4);
-    vec3 diffuse = diff * vec3(1.0);
+    vec3 diffuse = diff * vec3(sunlight);
 
     // Blinn-Phong (specular), gated by the same cosine as the diffuse term.
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
-    vec3 specular = spec * vec3(0.3) * diff * (1.0 - airless);   // dust has no glint
+    vec3 specular = spec * vec3(0.3) * diff * (1.0 - airless) * sunlight;   // dust has no glint
 
     vec3 ambient = vec3(0.008);
 
@@ -204,7 +211,7 @@ void main() {
                 // Sunlight refracted through Earth's limb: deep red at the axis, copper
                 // towards the umbra's edge. Far dimmer than sunlight, raised for the eye.
                 float edge = clamp(separation / max(casterAngle - sunAngle, 1e-6), 0.0, 1.0);
-                umbraLight += hidden * mix(vec3(0.07, 0.008, 0.002), vec3(0.17, 0.052, 0.015), edge * edge) * diff;
+                umbraLight += hidden * mix(vec3(0.07, 0.008, 0.002), vec3(0.17, 0.052, 0.015), edge * edge) * diff * sunlight;
             }
         }
     }
@@ -231,7 +238,7 @@ void main() {
             shadowFactor *= 1.0 - blocked;
             // Ringshine: the rings themselves glow in sunlight and light the band their
             // shadow darkens, so its cloud belts still show, a few percent of the Sun.
-            umbraLight += vec3(0.06) * blocked * diff;
+            umbraLight += vec3(0.06) * blocked * diff * sunlight;
         }
     }
     diffuse *= shadowFactor;
@@ -271,7 +278,7 @@ void main() {
         float glow = mix(farFace, litFace, sameSide) / max(0.5 * (1.0 - exp(-4.0 * tau)), 1e-4);
         float seen = 1.0 - exp(-tau / mu);
         // In Saturn's shadow, its dayside glow, ~1.5% of sunlight.
-        vec3 radiance = albedo * 1.2 * glow * a * mix(1.0, 0.015, inShadow);
+        vec3 radiance = albedo * 1.2 * glow * a * mix(1.0, 0.015, inShadow) * sunlight;
         FragColor = vec4(radiance / max(seen, 1e-3), seen);
         return;
     }
@@ -313,7 +320,7 @@ void main() {
     if (dot(atmoColor, atmoColor) > 0.0) {
         float rim = pow(1.0 - max(dot(normal, viewDir), 0.0), 4.0);
         float lit = smoothstep(-0.25, 0.35, dot(normal, lightDir)) * shadowFactor;
-        color += atmoColor * rim * lit;
+        color += atmoColor * rim * lit * sunlight;
     }
 
     FragColor = vec4(color, texColor.a);

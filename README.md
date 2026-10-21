@@ -285,6 +285,15 @@ asteroids. They show only from outside the belt, fading in from 3.3 to 6.7 AU fr
 the Sun: from within it, 58,000 dots would fill a sky where no asteroid can be seen
 with the naked eye.
 
+### Light and exposure
+
+Sunlight falls with the square of the distance from the Sun, and the picture is
+exposed for the light where the camera is, as an eye or a camera adapts: the body
+in view looks as it always did, while a body elsewhere in the same frame is as much
+brighter or dimmer as it really is. From near Earth, Saturn gets 1/90 of Earth's
+sunlight and Mercury 6.6 times. Nearer the Sun than 0.2 AU the exposure stops
+following, so Mercury and the Sun's surroundings are not lit to black.
+
 ### Orbit lines
 
 Each planet's line is its osculating ellipse, the orbit it would follow if every
