@@ -108,12 +108,14 @@ int main(int argc, char** argv) {
         locs.shadowCasterRadius  = shader.uniformLocation("shadowCasterRadius");
         locs.casterHasAtmosphere = shader.uniformLocation("casterHasAtmosphere");
         locs.airless             = shader.uniformLocation("airless");
+        locs.hasClouds          = shader.uniformLocation("hasClouds");
 
         shader.use();
         // Sampler uniforms default to 0, so binding textures to GL_TEXTURE0
         // happened to work already. Stating it makes the coupling explicit.
         glUniform1i(shader.uniformLocation("bodyTexture"), 0);
         glUniform1i(shader.uniformLocation("ringTexture"), 1);
+        glUniform1i(shader.uniformLocation("cloudTexture"), 2);
         // The light never moves, so it is uploaded once rather than per frame.
         glUniform3fv(locs.lightPos, 1, &lightPosition[0]);
 

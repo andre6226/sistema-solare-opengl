@@ -230,7 +230,12 @@ for each point of Saturn, the ray towards the Sun crosses the ring plane at some
 radius, and the light left is what the ring texture lets through there. The
 shadow edges are sharp; the Sun's disc would blur them by about 100 km.
 
-Tethys has no map of its own yet: it borrows Mimas's texture.
+
+## Earth's clouds
+
+The Blue Marble cloud map lies over a cloud-free surface, fixed to the ground. Only
+open water glints, and a Rayleigh haze, thicker towards the limb, turns the oceans
+blue.
 
 ## Regenerating the data
 
@@ -244,6 +249,7 @@ in `tools/`, from public files:
 | `tools/satellite_fit.py` | Horizons API | `SolarSystem/SatelliteOrbits.hpp` |
 | `tools/satellite_tables.py` | Horizons API | `resources/moons/*.bin` |
 | `tools/smallbody_tables.py` | Horizons API | `resources/bodies/*.bin` |
+| `tools/moon_textures.py` | Blue Marble surface and clouds (NASA Earth Observatory), LRO colour Moon (NASA SVS CGI Moon Kit), USGS global mosaics of Io, Europa, Ganymede, Callisto, Enceladus, Tethys, Phobos | `resources/{Earth,EarthClouds,Moon,Io,...}.jpg` |
 | `tools/asteroid_texture.py` | Dawn FC global mosaics of Ceres and Vesta (`planetarymaps.usgs.gov/mosaic/`), NEAR MSI global basemap of Eros (PDS Small Bodies Node) | `resources/{Ceres,Vesta,Eros}.jpg` |
 
 ## Tests
@@ -268,4 +274,8 @@ and shape models in `resources/`) remain under the terms of their authors.
 The maps of Ceres and Vesta are Dawn Framing Camera global mosaics by DLR
 (NASA/JPL-Caltech/UCLA/MPS/DLR/IDA), distributed by the USGS Astrogeology Science
 Center; Eros's is the NEAR Shoemaker MSI global basemap by M. Robinson
-(NASA/JHUAPL), from the PDS Small Bodies Node.
+(NASA/JHUAPL), from the PDS Small Bodies Node. Earth's surface and clouds are
+NASA's Blue Marble (Reto Stöckli, NASA Earth Observatory), the Moon is the LRO
+colour map of NASA's SVS CGI Moon Kit (Ernie Wright), and the maps of Io, Europa,
+Ganymede, Callisto, Enceladus, Tethys and Phobos are Galileo, Voyager, Cassini and
+Viking global mosaics from the USGS Astrogeology Science Center.

@@ -37,6 +37,9 @@ uniform float shadowCasterRadius[8];
 uniform float casterHasAtmosphere;
 // 1 for bodies without an atmosphere worth the name: shaded as dusty regolith.
 uniform float airless;
+// Earth only: cloud cover (grey = opacity, loaded linear), fixed to the ground.
+uniform sampler2D cloudTexture;
+uniform float hasClouds;
 
 // Radial extent of the ring annulus, as a fraction of the quad's half width.
 const float RING_INNER = 0.502;   // 70,750 km of the 140,920 km quad, see SolarSystem.hpp
@@ -186,7 +189,20 @@ void main() {
         }
     }
 
-    vec3 color = (ambient + diffuse + umbraLight) * albedo + specular;
+    vec3 color;
+    if (hasClouds > 0.5) {
+        // Earth: only open water glints (dark and blue in the Blue Marble map), clouds
+        // hide the ground lit like it, and Rayleigh scattering adds the blue haze that
+        // makes the oceans blue from space, thicker towards the limb.
+        float water = (albedo.b > 1.5 * albedo.r && albedo.b > albedo.g && albedo.b < 0.05) ? 1.0 : 0.0;
+        float cloud = texture(cloudTexture, vTexCoord).r;
+        vec3 light = ambient + diffuse + umbraLight;
+        color = mix(light * albedo + specular * water, light * vec3(0.92), cloud);
+        float mu = max(dot(normal, viewDir), 0.0);
+        color += (diffuse + umbraLight) * vec3(0.010, 0.024, 0.065) * (1.0 + 2.0 * (1.0 - mu)) * (1.0 - 0.6 * cloud);
+    } else {
+        color = (ambient + diffuse + umbraLight) * albedo + specular;
+    }
 
     FragColor = vec4(color, texColor.a);
 }

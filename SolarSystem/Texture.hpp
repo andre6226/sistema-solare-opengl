@@ -20,7 +20,9 @@ public:
     GLuint ID = 0;
     glm::vec3 tint{0.9f, 0.9f, 0.9f};
 
-    explicit Texture(const std::string& path) {
+    // srgb = false for data maps (Earth's cloud opacity), which must be filtered and
+    // mipmapped as stored: averaged in linear light, a grey opacity map swells into halos.
+    explicit Texture(const std::string& path, bool srgb = true) {
 
         sf::Image image;
         if (!image.loadFromFile(path)) {
@@ -83,7 +85,7 @@ public:
         // sampling, and GL_FRAMEBUFFER_SRGB re-encodes on write. Only the three
         // colour channels are converted; alpha stays linear, which is what the
         // ring cutout needs.
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
+        glTexImage2D(GL_TEXTURE_2D, 0, srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
 
         glGenerateMipmap(GL_TEXTURE_2D);
 

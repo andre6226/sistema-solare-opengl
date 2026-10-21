@@ -145,4 +145,5 @@ struct UniformLocations {
     GLint shadowCasterRadius;
     GLint casterHasAtmosphere;
     GLint airless;
+    GLint hasClouds;   // Earth only
 };

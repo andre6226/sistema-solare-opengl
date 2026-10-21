@@ -41,6 +41,7 @@ private:
     glm::dvec3 ephemerisOffset{0.0};   // from the parent, world axes, km
     bool hasPole = false;
     bool airless = false;            // shaded as regolith (Lommel-Seeliger), not Lambert
+    Texture* clouds = nullptr;       // Earth's cloud cover, drawn over its surface
     glm::dmat3 bodyFrame{1.0};         // mesh axes to world, with the spin
     glm::dmat3 equatorFrame{1.0};      // same without the spin: the frame rings and tilted moons use
     glm::vec3 shape{1.0f};             // per-axis radius over `scale`, mesh axes
@@ -179,6 +180,7 @@ public:
     }
     // Triaxial radii along the mesh axes, km; `scale` becomes the largest.
     void setAirless(bool value) { airless = value; }
+    void setClouds(Texture* map) { clouds = map; }
 
     void setRadii(const glm::vec3& radii) {
         scale = std::max(radii.x, std::max(radii.y, radii.z));
@@ -241,6 +243,9 @@ public:
             }
         }
         glUniform1f(locs.ringOuterRadius, ringRadius);
+
+        glUniform1f(locs.hasClouds, clouds != nullptr ? 1.0f : 0.0f);
+        if (clouds != nullptr) clouds->bind(2);
 
         if (texture != nullptr) {
             texture->bind(0);

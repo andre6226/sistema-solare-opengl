@@ -501,8 +501,8 @@ private:
         }
     }
 
-    Texture* loadTexture(const std::string& path) {
-        auto texture = std::make_unique<Texture>(path);
+    Texture* loadTexture(const std::string& path, bool srgb = true) {
+        auto texture = std::make_unique<Texture>(path, srgb);
         Texture* raw = texture.get();
         textures.push_back(std::move(texture));
         return raw;
@@ -571,6 +571,7 @@ private:
 
         CelestialBody* earth = createBody(Astro::Earth, sun);
         earth->setTiltChildren(false); // the Moon follows the ecliptic, not Earth's equator
+        earth->setClouds(loadTexture("resources/EarthClouds.jpg", false));
         createBody(Astro::Moon, earth);
 
         createBody(Astro::Eros, sun, loadShape("resources/models/Eros.obj"));
