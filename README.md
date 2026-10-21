@@ -16,7 +16,7 @@ or will be, turned the way it really faces.
 | Sun, planets, Moon | JPL **DE440** ephemeris | JPL `testpo.440` | 2 mm worst case |
 | Solar eclipses | DE440 + light time + aberration | NASA Five Millennium Catalog, 23 total/annular eclipses 1901–2200 | greatest eclipse within **0.5 s** (TD), gamma to 4 decimals |
 | Earth's rotation | IAU 2006 precession, DE440 nutation, Earth Rotation Angle | subsolar point vs equation of time and declination | < 0.3° |
-| Clock (UTC ↔ TT) | ΔT measured by USNO, 1900–2026 | — | exact for the past, a forecast after 2026 |
+| Clock (UTC ↔ TT ↔ UT1) | IERS leap seconds from 1972; ΔT measured by USNO, 1900–2026 | — | UTC ↔ TT exact (no leap seconds assumed after 2016); Earth's rotation a forecast after 2026 |
 | Poles, spin, shape | IAU WGCCRE 2015 (NAIF `pck00011.tpc`) | — | oblate Saturn, Jupiter, Earth; real prime meridians |
 | Moon's orientation | DE440 lunar librations | — | the near side faces Earth, with libration |
 | 23 planetary moons | JPL satellite ephemerides (Horizons) | JPL samples the tables never saw, 1900–2200 | mean orbit + correction tables: **< 1 km** for every moon (worst: Miranda, 0.92 km), 159 MB |
@@ -25,10 +25,14 @@ or will be, turned the way it really faces.
 | Main asteroid belt | osculating elements of the ~58,000 numbered main-belt asteroids brighter than H 15 (JPL Small-Body Database) | — | Kepler orbits about the Sun: a picture of the belt, not an ephemeris |
 | Saturn's rings | texture measured on the Cassini division and Encke gap; opacity from Cassini's radio occultation (PDS Rings Node, Rev 7, 10 km) | — | C ring to F ring at the real radii |
 
-**The one thing no model fixes:** after 2026 the time shown is UTC predicted
-with a forecast of ΔT, the drift of Earth's rotation. Eclipses stay exact in
-dynamical time, but their UTC clock time can be off by about a minute in 2100
-and by several minutes by 2200. Nobody can do better until it happens.
+**The one thing no model fixes:** Earth's rotation after 2026. UTC is kept as
+atomic time plus the leap seconds of IERS (37 s since 2017), and no more are
+assumed: the CGPM (2022, Resolution 4) plans to stop them by 2035. So eclipse
+clock times are exact in UTC, but how far Earth has turned, and so where on the
+ground an eclipse falls, rests on a forecast of ΔT that may be off by about a
+minute of rotation (15 arcminutes of longitude) in 2100 and several by 2200.
+Nobody can do better until it happens. Should a leap second still be announced,
+even a negative one, it is one more row in `Astro::ttMinusUtcSeconds`.
 
 ## Gallery
 
@@ -123,11 +127,20 @@ mass, which puts both within 0.3 km of JPL.
 ### Time
 
 The date picker speaks UTC; the ephemeris runs on TDB, which keeps step with the
-atomic clocks. They differ by ΔT (TT − UT1), 64 s in 2000 and 69 s today, and it
-changes because Earth's spin is irregular. ΔT comes from the USNO measurements
-for each year from 1900 to 2026 (`Astro::deltaTSeconds`). After that it follows
-tidal braking (+32 s per century²) from today's value and trend. That forecast is
-the only error source in the whole program that cannot be removed.
+atomic clocks, and Earth turns on UT1. Three clocks:
+
+* TT − UTC (`Astro::ttMinusUtcSeconds`): from 1972, 32.184 s plus the leap
+  seconds, 69.184 s since 2017 and, by assumption, for good. Before 1972 UTC
+  followed Earth's rotation and this is ΔT.
+* ΔT = TT − UT1 (`Astro::deltaTSeconds`), 64 s in 2000 and 69 s today, changing
+  because Earth's spin is irregular: the USNO measurements for each year from
+  1900 to 2026, then tidal braking (+32 s per century²) from today's value and
+  trend.
+* UT1 − UTC, their difference, within 0.9 s while leap seconds were added; after,
+  the forecast drift: −1 s in 2050, −15 s in 2100, −1.5 min in 2200.
+
+The ΔT forecast is the only error source in the whole program that cannot be
+removed, and it now shows in Earth's rotation, not in the clock.
 
 ### Eclipses and the speed of light
 

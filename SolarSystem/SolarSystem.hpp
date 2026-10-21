@@ -501,7 +501,7 @@ private:
 
     // Positions from DE440 and orientations from the IAU models at the current clock.
     void applyEphemeris() {
-        const double jdUt  = Astro::unixToJulianDate(simTimeSeconds);   // UTC stands in for UT1 (< 1 s)
+        const double jdUt  = Astro::unixToJulianDateUt1(simTimeSeconds);
         const double jdTdb = Astro::unixToJulianDateTdb(simTimeSeconds);
         const double T = (jdTdb - Astro::J2000_EPOCH_JD) / Astro::DAYS_PER_JULIAN_CENTURY;
         const glm::dmat3 toWorld = Astro::icrfToWorld();

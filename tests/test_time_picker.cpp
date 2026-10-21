@@ -160,7 +160,7 @@ int main() {
             const double unix = Astro::utcDateTimeToUnix(2026, month, day, 12, 0, 0);
             const double jdTdb = Astro::unixToJulianDateTdb(unix);
             const glm::dvec3 nut = eph.evaluate(Ephemeris::Nutation, jdTdb).position;
-            const glm::dmat3 toBody = glm::transpose(Astro::earthToIcrf(Astro::unixToJulianDate(unix), jdTdb, nut.x, nut.y));
+            const glm::dmat3 toBody = glm::transpose(Astro::earthToIcrf(Astro::unixToJulianDateUt1(unix), jdTdb, nut.x, nut.y));
             const glm::dvec3 sun = glm::normalize(toBody * -eph.heliocentric(Ephemeris::EarthMoonBarycentre, jdTdb).position);
             assert(std::abs(glm::degrees(std::asin(sun.z)) - lat) < 0.3);
             assert(std::abs(glm::degrees(std::atan2(sun.y, sun.x)) - lon) < 0.3);
@@ -172,6 +172,16 @@ int main() {
         const double joint = Astro::utcDateTimeToUnix(2026, 1, 1, 0, 0, 0);
         assert(std::abs(Astro::deltaTSeconds(joint + 3600.0) - Astro::deltaTSeconds(joint - 3600.0)) < 0.01);
         assert(Astro::deltaTSeconds(Astro::utcDateTimeToUnix(2200, 1, 1, 0, 0, 0)) > 100.0);
+        // TT - UTC: leap seconds from 1972 (37 s TAI - UTC since 2017), none assumed after;
+        // UT1 stays within 0.9 s of UTC while leap seconds kept it there.
+        assert(std::abs(Astro::ttMinusUtcSeconds(Astro::utcDateTimeToUnix(2016, 12, 31, 23, 0, 0)) - 68.184) < 1e-9);
+        assert(std::abs(Astro::ttMinusUtcSeconds(Astro::utcDateTimeToUnix(2017, 1, 1, 0, 0, 0)) - 69.184) < 1e-9);
+        assert(std::abs(Astro::ttMinusUtcSeconds(Astro::utcDateTimeToUnix(2150, 1, 1, 0, 0, 0)) - 69.184) < 1e-9);
+        assert(std::abs(Astro::ttMinusUtcSeconds(Astro::utcDateTimeToUnix(1972, 1, 1, 0, 0, 0)) - 42.184) < 1e-9);
+        for (int year = 1972; year <= 2026; ++year) {
+            const double u = Astro::utcDateTimeToUnix(year, 6, 1, 0, 0, 0);
+            assert(std::abs(Astro::unixToJulianDateUt1(u) - Astro::unixToJulianDate(u)) * Astro::SECONDS_PER_DAY < 1.0);
+        }
 
         // Planetary moons, mean orbit + correction table, against JPL Horizons
         // (planet-centred ICRF km, instants off the tables' sample grid): within 1 km.

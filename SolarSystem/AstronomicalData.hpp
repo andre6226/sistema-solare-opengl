@@ -176,10 +176,6 @@ namespace Astro {
         return measured[last] + 100.0 * (measured[last] - measured[last - 1]) * t + 32.0 * t * t;
     }
 
-    // Julian date in TDB (= TT to 2 ms), the time argument of the ephemeris and the IAU models.
-    inline double unixToJulianDateTdb(double unixUtc) {
-        return unixToJulianDate(unixUtc) + deltaTSeconds(unixUtc) / SECONDS_PER_DAY;
-    }
 
     // Active right-handed rotations, radians.
     inline glm::dmat3 rotationX(double a) { const double c = std::cos(a), s = std::sin(a); return glm::dmat3(1, 0, 0, 0, c, s, 0, -s, c); }
@@ -329,6 +325,37 @@ namespace Astro {
 #else
         return static_cast<double>(timegm(&tmVal));
 #endif
+    }
+
+    // TT - UTC in seconds. From 1972 UTC ticks atomic seconds: TT - UTC = 32.184 s +
+    // TAI - UTC, the leap seconds of IERS Bulletin C. None since 2017, and none assumed to
+    // come: the CGPM (2022, Resolution 4) plans to stop them by 2035. A leap second
+    // announced before then, even a negative one, is one more row here. Before 1972 UTC
+    // followed Earth's rotation, so TT - UTC is Delta T.
+    inline double ttMinusUtcSeconds(double unixUtc) {
+        static constexpr int steps[][2] = {   // TAI - UTC went up by 1 s on the 1st of this month
+            {1972, 7}, {1973, 1}, {1974, 1}, {1975, 1}, {1976, 1}, {1977, 1}, {1978, 1}, {1979, 1},
+            {1980, 1}, {1981, 7}, {1982, 7}, {1983, 7}, {1985, 7}, {1988, 1}, {1990, 1}, {1991, 1},
+            {1992, 7}, {1993, 7}, {1994, 7}, {1996, 1}, {1997, 7}, {1999, 1}, {2006, 1}, {2009, 1},
+            {2012, 7}, {2015, 7}, {2017, 1}};
+        if (unixUtc < utcDateTimeToUnix(1972, 1, 1, 0, 0, 0)) return deltaTSeconds(unixUtc);
+        int taiMinusUtc = 10;
+        for (const auto& [year, month] : steps) {
+            if (unixUtc >= utcDateTimeToUnix(year, month, 1, 0, 0, 0)) ++taiMinusUtc;
+        }
+        return 32.184 + taiMinusUtc;
+    }
+
+    // Julian date in TDB (= TT to 2 ms), the time argument of the ephemeris and the IAU models.
+    // Exact from UTC: eclipse clock times no longer hang on the Delta T forecast.
+    inline double unixToJulianDateTdb(double unixUtc) {
+        return unixToJulianDate(unixUtc) + ttMinusUtcSeconds(unixUtc) / SECONDS_PER_DAY;
+    }
+
+    // Julian date in UT1, Earth's rotation: TT - Delta T. Within 0.9 s of UTC to 2017;
+    // after, the forecast drift of Delta T shows as UT1 - UTC: -15 s by 2100, -1.5 min by 2200.
+    inline double unixToJulianDateUt1(double unixUtc) {
+        return unixToJulianDate(unixUtc) + (ttMinusUtcSeconds(unixUtc) - deltaTSeconds(unixUtc)) / SECONDS_PER_DAY;
     }
 
     inline void clampPickerValues(int& y, int& m, int& d, int& h, int& min, int& s) {
