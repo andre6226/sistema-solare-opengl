@@ -131,7 +131,7 @@ void main() {
                 // Sunlight refracted through Earth's limb: deep red at the axis, copper
                 // towards the umbra's edge. Far dimmer than sunlight, raised for the eye.
                 float edge = clamp(separation / max(casterAngle - sunAngle, 1e-6), 0.0, 1.0);
-                umbraLight += hidden * mix(vec3(0.10, 0.012, 0.003), vec3(0.24, 0.075, 0.022), edge * edge) * diff;
+                umbraLight += hidden * mix(vec3(0.07, 0.008, 0.002), vec3(0.17, 0.052, 0.015), edge * edge) * diff;
             }
         }
     }
