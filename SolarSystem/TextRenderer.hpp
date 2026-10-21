@@ -109,6 +109,12 @@ public:
         pushQuad(solidQuads, x, y, w, h, glm::vec2(0.0f), glm::vec2(0.0f), color);
     }
 
+    // Draws a soft radial glowing dot centered at (cx, cy) in screen pixels.
+    void dot(float cx, float cy, float radius, const glm::vec4& color) {
+        pushQuad(solidQuads, cx - radius, cy - radius, radius * 2.0f, radius * 2.0f,
+                 glm::vec2(-1.0f, -1.0f), glm::vec2(1.0f, 1.0f), color);
+    }
+
     // Draws `text` with its left edge at x and its BASELINE at y.
     void text(const std::string& utf8, float x, float y, float scale, const glm::vec4& color) {
         float penX = x;

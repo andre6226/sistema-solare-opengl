@@ -6,10 +6,11 @@ in vec2 vTexCoord;
 out vec4 FragColor;
 
 // Must stay in sync with enum class BodyType in CelestialBody.hpp
-const int BODY_PLANET = 0;
-const int BODY_SUN    = 1;
-const int BODY_RING   = 2;
-const int BODY_SKY    = 3;
+const int BODY_PLANET   = 0;
+const int BODY_SUN      = 1;
+const int BODY_RING     = 2;
+const int BODY_SKY      = 3;
+const int BODY_SUN_GLOW = 4;
 
 uniform int bodyType;
 
@@ -21,11 +22,26 @@ uniform sampler2D bodyTexture;
 uniform vec3  parentCenter;
 uniform float parentRadius;
 
+// Dynamic Eclipse Shadowing
+uniform float sunRadius;
+uniform int shadowCasterCount;
+uniform vec3 shadowCasterPos[8];
+uniform float shadowCasterRadius[8];
+
 // Radial extent of the ring annulus, as a fraction of the quad's half width.
-const float RING_INNER = 0.50;
-const float RING_OUTER = 0.95;
+const float RING_INNER = 0.502;   // 70,750 km of the 140,920 km quad, see SolarSystem.hpp
+const float RING_OUTER = 1.0;
 
 void main() {
+    if (bodyType == BODY_SUN_GLOW) {
+        vec3 viewDir = normalize(cameraPos - vWorldPos);
+        float ndotv  = clamp(dot(normalize(vNormal), viewDir), 0.0, 1.0);
+        float corona = pow(ndotv, 3.2) * 0.55;
+        vec3 glowColor = mix(vec3(1.0, 0.55, 0.12), vec3(1.0, 0.96, 0.85), pow(ndotv, 1.6));
+        FragColor = vec4(glowColor * corona, corona);
+        return;
+    }
+
     bool isRing = (bodyType == BODY_RING);
 
     vec2 uv = vTexCoord;
@@ -44,17 +60,24 @@ void main() {
     // well defined while all of them are still alive.
     vec4 texColor = texture(bodyTexture, uv);
 
-    // The alpha test only concerns the rings. It used to run for every fragment
-    // of every body, where the JPEG textures are fully opaque and it could never
-    // trigger, while a discard anywhere in the shader costs the whole program
-    // its early depth test.
+    // The alpha test only concerns the rings.
     if (isRing && (outsideAnnulus || texColor.a < 0.1 || length(texColor.rgb) < 0.15)) {
         discard;
     }
 
-    // The Sun and the sky sphere are emissive: no lighting applied.
-    if (bodyType == BODY_SUN || bodyType == BODY_SKY) {
+    if (bodyType == BODY_SKY) {
         FragColor = texColor;
+        return;
+    }
+
+    if (bodyType == BODY_SUN) {
+        vec3 viewDir = normalize(cameraPos - vWorldPos);
+        float ndotv  = clamp(dot(normalize(vNormal), viewDir), 0.0, 1.0);
+        // Overexpose the solar texture so granulation shows through a blinding
+        // white-gold incandescence up close.
+        vec3 texGlow = pow(texColor.rgb, vec3(0.80)) * 1.9;
+        vec3 dazzle  = vec3(1.0, 0.94, 0.78) * (0.45 + 0.55 * pow(ndotv, 1.8));
+        FragColor = vec4(texGlow + dazzle, 1.0);
         return;
     }
 
@@ -62,9 +85,6 @@ void main() {
     vec3 lightDir = normalize(lightPos - vWorldPos);
     vec3 viewDir  = normalize(cameraPos - vWorldPos);
 
-    // No inverse-square falloff: at true scale Neptune would receive about
-    // 1/900th of Mercury's illumination and be invisible. Distance attenuation
-    // is deliberately omitted so every planet stays readable.
     vec3 albedo = texColor.rgb;
 
     // Lambert (diffuse)
@@ -72,27 +92,47 @@ void main() {
     vec3 diffuse = diff * vec3(1.0);
 
     // Blinn-Phong (specular), gated by the same cosine as the diffuse term.
-    // The rendering equation applies the incidence factor to every reflected
-    // component, not just the diffuse one; without it Blinn-Phong leaks a
-    // highlight onto surfaces turned away from the light, which showed up as a
-    // glint on the night side and on the shadowed part of the rings.
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
     vec3 specular = spec * vec3(0.3) * diff;
 
-    // Linear-space fill light. The old value of 0.05 was tuned back when the
-    // shader multiplied gamma-encoded texels and wrote the result out with no
-    // further encoding. Now the albedo arrives linear and the result is encoded
-    // on write, so the same constant came out roughly four times brighter on
-    // screen and washed out the night side.
     vec3 ambient = vec3(0.008);
 
+    // Dynamic Eclipse Shadowing (Solar & Lunar)
+    float shadowFactor = 1.0;
+    if (diff > 0.0) {
+        for (int i = 0; i < shadowCasterCount; ++i) {
+            vec3 casterPos = shadowCasterPos[i];
+            float casterRadius = shadowCasterRadius[i];
+            vec3 a = normalize(casterPos - lightPos);
+            float dSC = length(casterPos - lightPos);
+            vec3 v = vWorldPos - casterPos;
+            float z = dot(v, a);
+            if (z > 0.0) {
+                float tanUmbra = (sunRadius - casterRadius) / dSC;
+                float tanPenumbra = (sunRadius + casterRadius) / dSC;
+                float rUmbra = casterRadius - z * tanUmbra;
+                float rPenumbra = casterRadius + z * tanPenumbra;
+                vec3 vPerp = v - z * a;
+                float dPerpSq = dot(vPerp, vPerp);
+                if (dPerpSq < rPenumbra * rPenumbra) {
+                    float dPerp = sqrt(dPerpSq);
+                    float umbraBound = max(0.0, rUmbra);
+                    float s_i = smoothstep(umbraBound, rPenumbra, dPerp);
+                    if (rUmbra < 0.0) { // Annular eclipse
+                        float occultation = clamp((casterRadius * dSC) / (sunRadius * z), 0.0, 1.0);
+                        float sMin = 1.0 - (occultation * occultation);
+                        s_i = mix(sMin, 1.0, s_i);
+                    }
+                    shadowFactor *= s_i;
+                }
+            }
+        }
+    }
+    diffuse *= shadowFactor;
+    specular *= shadowFactor;
+
     if (isRing) {
-        // Is this point of the ring in the parent planet's shadow? Project the
-        // planet's centre onto the light ray reaching this fragment and compare
-        // the distance from that ray with the planet's radius: a ray/cylinder
-        // test, valid as long as the light is far enough to be treated as a
-        // point source.
         vec3 rayDir = normalize(vWorldPos - lightPos);
         float projectedDistance = dot(parentCenter - lightPos, rayDir);
         vec3 closestPoint = lightPos + rayDir * projectedDistance;
@@ -103,22 +143,13 @@ void main() {
         if (distanceFromAxis < (parentRadius * 0.98) && behindPlanet) {
             ambient  = vec3(0.005);
             diffuse  = vec3(0.0);
-            // The planet blocks the light: there is nothing left to reflect,
-            // so the highlight has to go as well.
             specular = vec3(0.0);
             albedo  *= 0.15;
         } else {
-            // The quad's normal is perpendicular to the ring plane while the
-            // light arrives almost edge-on, so the diffuse term is near zero.
-            // A high ambient term stands in for the scattering of a thin medium.
             ambient = vec3(0.8);
         }
     }
 
-    // Ambient and diffuse are reflected light and take the surface colour;
-    // the specular highlight of a dielectric is the colour of the light source
-    // itself, so it is added rather than multiplied. Folding it into the albedo
-    // was what gave Mars a reddish highlight instead of a white one.
     vec3 color = (ambient + diffuse) * albedo + specular;
 
     FragColor = vec4(color, texColor.a);

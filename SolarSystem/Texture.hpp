@@ -1,6 +1,9 @@
 #pragma once
 #include "../glad/gl.h"
 #include <SFML/Graphics.hpp>
+#include <glm/glm.hpp>
+#include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <string>
 
@@ -15,6 +18,7 @@
 class Texture {
 public:
     GLuint ID = 0;
+    glm::vec3 tint{0.9f, 0.9f, 0.9f};
 
     explicit Texture(const std::string& path) {
 
@@ -50,6 +54,28 @@ public:
 
         sf::Vector2u size = image.getSize();
         const GLvoid* pixelData = image.getPixelsPtr();
+
+        // Compute a bright representative tint from the texture so distant
+        // planet beacons carry each body's recognizable colour.
+        const auto* bytes = image.getPixelsPtr();
+        if (bytes && size.x > 0 && size.y > 0) {
+            glm::vec3 sum(0.0f);
+            int count = 0;
+            const unsigned int stepX = std::max(1u, size.x / 16u);
+            const unsigned int stepY = std::max(1u, size.y / 8u);
+            for (unsigned int y = stepY / 2; y < size.y; y += stepY) {
+                for (unsigned int x = stepX / 2; x < size.x; x += stepX) {
+                    const std::size_t idx = (static_cast<std::size_t>(y) * size.x + x) * 4u;
+                    sum += glm::vec3(bytes[idx], bytes[idx + 1], bytes[idx + 2]) / 255.0f;
+                    ++count;
+                }
+            }
+            if (count > 0) {
+                glm::vec3 avg = sum / static_cast<float>(count);
+                float peak = std::max({avg.r, avg.g, avg.b, 0.01f});
+                tint = glm::mix(avg / peak, glm::vec3(1.0f), 0.25f);
+            }
+        }
 
         // GL_SRGB8_ALPHA8, not GL_RGBA: photographic textures are authored in
         // sRGB, so sampling them raw meant doing the lighting maths on

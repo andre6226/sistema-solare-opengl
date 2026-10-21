@@ -17,6 +17,7 @@
 #include <SFML/System/Clock.hpp>
 #include <SFML/System/Sleep.hpp>
 #include <algorithm>
+#include <iomanip>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -36,6 +37,9 @@ int main() {
 
         Shader shader("SolarSystem/base.vert", "SolarSystem/base.frag");
         SolarSystem solarSystem;
+        std::cout << "[time] Initialized UTC: " << Astro::formatUtcDateTime(solarSystem.getSimUnixSeconds())
+                  << " (JD " << std::fixed << std::setprecision(2) << solarSystem.getJulianDate()
+                  << ", T = " << std::setprecision(6) << solarSystem.getJulianCenturies() << " cy)" << std::endl;
         Camera camera(30.0f, 0.0f, 20.0f);
         Hud hud;
 
@@ -49,6 +53,10 @@ int main() {
         locs.bodyType     = shader.uniformLocation("bodyType");
         locs.parentCenter = shader.uniformLocation("parentCenter");
         locs.parentRadius = shader.uniformLocation("parentRadius");
+        locs.sunRadius          = shader.uniformLocation("sunRadius");
+        locs.shadowCasterCount   = shader.uniformLocation("shadowCasterCount");
+        locs.shadowCasterPos     = shader.uniformLocation("shadowCasterPos");
+        locs.shadowCasterRadius  = shader.uniformLocation("shadowCasterRadius");
 
         shader.use();
         // Sampler uniforms default to 0, so binding textures to GL_TEXTURE0
@@ -90,7 +98,11 @@ int main() {
                 smoothedFps += (1.0f / realDelta - smoothedFps) * 0.1f;
             }
 
-            solarSystem.update(realDelta * input.timeScale);
+            if (!input.timePickerOpen) {
+                solarSystem.update(realDelta * input.timeScale);
+            } else {
+                solarSystem.update(0.0f);
+            }
 
             // A minimised window can report a size of zero: the aspect ratio
             // would become NaN and poison the whole projection matrix.
@@ -117,6 +129,7 @@ int main() {
             glUniform3fv(locs.cameraPos, 1, &cameraPosition[0]);
 
             solarSystem.draw(locs, cameraPosition);
+            solarSystem.drawOrbits(viewMatrix, projectionMatrix);
 
             HudFrame hudFrame;
             hudFrame.targetName     = currentTarget;
@@ -126,6 +139,17 @@ int main() {
             hudFrame.timeScale      = input.timeScale;
             hudFrame.cameraDistance = camera.getDistance();
             hudFrame.fps            = smoothedFps;
+            hudFrame.utcTime        = Astro::formatUtcDateTime(solarSystem.getSimUnixSeconds());
+            hudFrame.timePickerOpen = input.timePickerOpen;
+            hudFrame.pickerField    = input.pickerField;
+            hudFrame.pickerYear     = input.pickerYear;
+            hudFrame.pickerMonth    = input.pickerMonth;
+            hudFrame.pickerDay      = input.pickerDay;
+            hudFrame.pickerHour     = input.pickerHour;
+            hudFrame.pickerMin      = input.pickerMin;
+            hudFrame.pickerSec      = input.pickerSec;
+            solarSystem.collectMarkers(projectionMatrix * viewMatrix, cameraPosition,
+                                       size.x, size.y, hudFrame.markers);
             hud.draw(hudFrame, size.x, size.y);
 
             glUseProgram(0);

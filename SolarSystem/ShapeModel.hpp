@@ -118,7 +118,7 @@ private:
             if (tag == "v") {
                 glm::vec3 p;
                 stream >> p.x >> p.y >> p.z;
-                positions.push_back(p);
+                positions.push_back(glm::vec3(p.x, p.z, -p.y));   // body z (north) onto the mesh's polar +Y, like the grids
             } else if (tag == "f") {
                 // Faces may be polygons and may carry texture/normal indices as
                 // "a/b/c"; only the position index matters here.

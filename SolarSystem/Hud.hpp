@@ -8,6 +8,81 @@
 #include "AstronomicalData.hpp"
 #include "TextRenderer.hpp"
 
+// Projected 2D screen marker for a distant solar-system body.
+struct BodyMarker {
+    std::string name;
+    float x = 0.0f;
+    float y = 0.0f;
+    float radius = 4.0f;
+    float dotAlpha = 0.8f;
+    float labelAlpha = 0.8f;
+    float prominence = 0.5f;
+    glm::vec3 color{1.0f};
+};
+
+// Layout and hitboxes for the interactive date and time picker.
+struct TimePickerLayout {
+    float dlgX = 0.0f, dlgY = 0.0f, dlgW = 460.0f, dlgH = 210.0f;
+    struct FieldBox {
+        float x = 0.0f, y = 0.0f, w = 0.0f, h = 0.0f;
+        float plusX = 0.0f, plusY = 0.0f, plusW = 0.0f, plusH = 0.0f;
+        float minusX = 0.0f, minusY = 0.0f, minusW = 0.0f, minusH = 0.0f;
+    } fields[6];
+    float btnNowX = 0.0f, btnNowY = 0.0f, btnNowW = 90.0f, btnNowH = 26.0f;
+    float btnCancelX = 0.0f, btnCancelY = 0.0f, btnCancelW = 100.0f, btnCancelH = 26.0f;
+    float btnApplyX = 0.0f, btnApplyY = 0.0f, btnApplyW = 140.0f, btnApplyH = 26.0f;
+    float btnCloseX = 0.0f, btnCloseY = 0.0f, btnCloseW = 24.0f, btnCloseH = 24.0f;
+
+    static TimePickerLayout compute(float screenW, float screenH) {
+        TimePickerLayout L;
+        L.dlgX = std::max(24.0f, (screenW - L.dlgW) * 0.5f);
+        L.dlgY = std::max(24.0f, (screenH - L.dlgH) * 0.42f);
+
+        L.btnCloseX = L.dlgX + L.dlgW - 28.0f;
+        L.btnCloseY = L.dlgY + 8.0f;
+
+        const float boxY = L.dlgY + 82.0f;
+        const float boxH = 30.0f;
+        const float widths[6] = {68.0f, 40.0f, 40.0f, 40.0f, 40.0f, 40.0f};
+        const float gaps[5] = {14.0f, 14.0f, 26.0f, 14.0f, 14.0f};
+
+        float curX = L.dlgX + (L.dlgW - 336.0f) * 0.5f;
+        for (int i = 0; i < 6; ++i) {
+            L.fields[i].x = curX;
+            L.fields[i].y = boxY;
+            L.fields[i].w = widths[i];
+            L.fields[i].h = boxH;
+
+            L.fields[i].plusX = curX;
+            L.fields[i].plusY = boxY - 20.0f;
+            L.fields[i].plusW = widths[i];
+            L.fields[i].plusH = 17.0f;
+
+            L.fields[i].minusX = curX;
+            L.fields[i].minusY = boxY + boxH + 3.0f;
+            L.fields[i].minusW = widths[i];
+            L.fields[i].minusH = 17.0f;
+
+            curX += widths[i];
+            if (i < 5) curX += gaps[i];
+        }
+
+        const float btnY = L.dlgY + L.dlgH - 38.0f;
+        L.btnNowX = L.dlgX + 35.0f;
+        L.btnNowY = btnY;
+        L.btnCancelX = L.dlgX + 145.0f;
+        L.btnCancelY = btnY;
+        L.btnApplyX = L.dlgX + 265.0f;
+        L.btnApplyY = btnY;
+
+        return L;
+    }
+
+    static bool contains(float px, float py, float rx, float ry, float rw, float rh) {
+        return (px >= rx && px <= rx + rw && py >= ry && py <= ry + rh);
+    }
+};
+
 // Everything the overlay needs for one frame, gathered by the caller so the HUD
 // stays independent of the simulation classes.
 struct HudFrame {
@@ -18,6 +93,16 @@ struct HudFrame {
     float timeScale = 1.0f;
     float cameraDistance = 0.0f;
     float fps = 0.0f;
+    std::string utcTime;
+    std::vector<BodyMarker> markers;
+    bool timePickerOpen = false;
+    int pickerField = 0; // 0=Year, 1=Month, 2=Day, 3=Hour, 4=Min, 5=Sec
+    int pickerYear = 2026;
+    int pickerMonth = 10;
+    int pickerDay = 21;
+    int pickerHour = 0;
+    int pickerMin = 0;
+    int pickerSec = 0;
 };
 
 class Hud {
@@ -27,9 +112,13 @@ public:
     void draw(const HudFrame& frame, unsigned int width, unsigned int height) {
         text.begin(width, height);
 
+        drawMarkers(frame.markers);
         drawInfoPanel(frame);
         drawStatus(frame, static_cast<float>(width));
         drawControls(static_cast<float>(height));
+        if (frame.timePickerOpen) {
+            drawTimePicker(frame, static_cast<float>(width), static_cast<float>(height));
+        }
 
         text.end();
     }
@@ -52,6 +141,37 @@ private:
     static constexpr float valueColumn = 165.0f;
 
     TextRenderer text;
+
+    void drawMarkers(const std::vector<BodyMarker>& markers) {
+        // Draw luminous dots for unresolved bodies (dotAlpha > 0).
+        for (const BodyMarker& m : markers) {
+            if (m.dotAlpha > 0.01f && m.radius > 0.5f) {
+                text.dot(m.x, m.y, m.radius, glm::vec4(m.color, m.dotAlpha));
+            }
+        }
+
+        // Draw names next to each body, skipping labels that would overlap a
+        // brighter body's label already placed nearby.
+        std::vector<glm::vec2> placedLabels;
+        for (const BodyMarker& m : markers) {
+            if (m.labelAlpha <= 0.05f) continue;
+
+            const float lx = m.x + m.radius + 5.0f;
+            const float ly = m.y + 4.0f;
+
+            bool overlaps = false;
+            for (const glm::vec2& p : placedLabels) {
+                if (std::abs(lx - p.x) < 52.0f && std::abs(ly - p.y) < 13.0f) {
+                    overlaps = true;
+                    break;
+                }
+            }
+            if (overlaps) continue;
+
+            placedLabels.emplace_back(lx, ly);
+            text.text(m.name, lx, ly, 0.36f, glm::vec4(bright.r, bright.g, bright.b, m.labelAlpha));
+        }
+    }
 
     void drawInfoPanel(const HudFrame& frame) {
         const std::vector<std::pair<std::string, std::string>> rows = buildRows(frame);
@@ -88,12 +208,14 @@ private:
 
         const std::string entries[] = {
             format("%.0f FPS", frame.fps),
+            frame.utcTime,
             format("TIME  %s\xC3\x97", trimFloat(frame.timeScale).c_str()),
-            format("DIST  %.2f u", frame.cameraDistance),
+            "DIST  " + formatDistance(frame.cameraDistance),
         };
 
         bool first = true;
         for (const std::string& entry : entries) {
+            if (entry.empty()) continue;
             const float w = text.measure(entry, rowScale);
             text.text(entry, width - margin - w, y, rowScale, first ? accent : dim);
             y += rowHeight;
@@ -104,9 +226,91 @@ private:
     void drawControls(float height) {
         const std::string hint =
             "ARROWS  navigate      DRAG  orbit      WHEEL  zoom      "
-            "SHIFT / CTRL  time      SPACE  reset";
+            "SHIFT / CTRL  time      SPACE  reset      O  orbits      T  date";
 
         text.text(hint, margin, height - margin, smallScale, dim);
+    }
+
+    void drawTimePicker(const HudFrame& frame, float screenW, float screenH) {
+        const TimePickerLayout L = TimePickerLayout::compute(screenW, screenH);
+
+        // Semi-transparent backdrop overlay to dim the scene slightly
+        text.rect(0.0f, 0.0f, screenW, screenH, glm::vec4(0.0f, 0.0f, 0.0f, 0.40f));
+
+        // Dialog background panel with subtle borders
+        text.rect(L.dlgX, L.dlgY, L.dlgW, L.dlgH, glm::vec4(0.03f, 0.04f, 0.08f, 0.94f));
+        text.rect(L.dlgX, L.dlgY, L.dlgW, 3.0f, accent); // Top spine
+        text.rect(L.dlgX, L.dlgY, 1.0f, L.dlgH, glm::vec4(dim.r, dim.g, dim.b, 0.25f));
+        text.rect(L.dlgX + L.dlgW - 1.0f, L.dlgY, 1.0f, L.dlgH, glm::vec4(dim.r, dim.g, dim.b, 0.25f));
+        text.rect(L.dlgX, L.dlgY + L.dlgH - 1.0f, L.dlgW, 1.0f, glm::vec4(dim.r, dim.g, dim.b, 0.25f));
+
+        // Header and Close button
+        text.text("IMPOSTA DATA E ORA UTC", L.dlgX + 20.0f, L.dlgY + 28.0f, 0.58f, bright);
+        text.text("X", L.btnCloseX + 6.0f, L.btnCloseY + 16.0f, 0.48f, dim);
+
+        text.text("FRECCE/TAB: scegli   SU/GIU/+/-: cambia   0-9: digita",
+                  L.dlgX + 20.0f, L.dlgY + 48.0f, smallScale, dim);
+
+        text.rect(L.dlgX + 20.0f, L.dlgY + 56.0f, L.dlgW - 40.0f, 1.0f,
+                  glm::vec4(accent.r, accent.g, accent.b, 0.30f));
+
+        // Values formatting
+        const int vals[6] = {frame.pickerYear, frame.pickerMonth, frame.pickerDay,
+                             frame.pickerHour, frame.pickerMin, frame.pickerSec};
+        const char* const valFmts[6] = {"%04d", "%02d", "%02d", "%02d", "%02d", "%02d"};
+        const char* const labels[6] = {"ANNO", "MESE", "GIORNO", "ORA", "MIN", "SEC"};
+
+        for (int i = 0; i < 6; ++i) {
+            const auto& f = L.fields[i];
+            const bool active = (frame.pickerField == i);
+
+            // Column title
+            const float lblW = text.measure(labels[i], 0.30f);
+            text.text(labels[i], f.x + (f.w - lblW) * 0.5f, f.y - 24.0f, 0.30f, active ? accent : dim);
+
+            // Plus button
+            text.rect(f.plusX, f.plusY, f.plusW, f.plusH, glm::vec4(0.08f, 0.10f, 0.16f, 0.85f));
+            text.text("+", f.plusX + f.plusW * 0.5f - 4.0f, f.plusY + 13.0f, 0.42f, active ? accent : dim);
+
+            // Field box
+            if (active) {
+                text.rect(f.x - 1.0f, f.y - 1.0f, f.w + 2.0f, f.h + 2.0f, accent);
+                text.rect(f.x, f.y, f.w, f.h, glm::vec4(0.14f, 0.16f, 0.24f, 0.98f));
+            } else {
+                text.rect(f.x, f.y, f.w, f.h, glm::vec4(0.06f, 0.08f, 0.13f, 0.85f));
+            }
+
+            char valBuf[16];
+            std::snprintf(valBuf, sizeof(valBuf), valFmts[i], vals[i]);
+            const std::string valStr(valBuf);
+            const float valW = text.measure(valStr, 0.52f);
+            text.text(valStr, f.x + (f.w - valW) * 0.5f, f.y + 22.0f, 0.52f, active ? accent : bright);
+
+            // Minus button
+            text.rect(f.minusX, f.minusY, f.minusW, f.minusH, glm::vec4(0.08f, 0.10f, 0.16f, 0.85f));
+            text.text("-", f.minusX + f.minusW * 0.5f - 3.0f, f.minusY + 12.0f, 0.42f, active ? accent : dim);
+        }
+
+        // Separators
+        text.text("-", L.fields[0].x + L.fields[0].w + 3.0f, L.fields[0].y + 20.0f, 0.50f, dim);
+        text.text("-", L.fields[1].x + L.fields[1].w + 3.0f, L.fields[1].y + 20.0f, 0.50f, dim);
+        text.text(":", L.fields[3].x + L.fields[3].w + 4.0f, L.fields[3].y + 20.0f, 0.50f, dim);
+        text.text(":", L.fields[4].x + L.fields[4].w + 4.0f, L.fields[4].y + 20.0f, 0.50f, dim);
+
+        // Bottom Action buttons
+        // [ ADESSO ]
+        text.rect(L.btnNowX, L.btnNowY, L.btnNowW, L.btnNowH, glm::vec4(0.08f, 0.10f, 0.16f, 0.85f));
+        text.text("ADESSO", L.btnNowX + 14.0f, L.btnNowY + 18.0f, 0.40f, bright);
+
+        // [ ANNULLA ]
+        text.rect(L.btnCancelX, L.btnCancelY, L.btnCancelW, L.btnCancelH, glm::vec4(0.08f, 0.10f, 0.16f, 0.85f));
+        text.text("ANNULLA", L.btnCancelX + 16.0f, L.btnCancelY + 18.0f, 0.40f, dim);
+
+        // [ APPLICA ]
+        text.rect(L.btnApplyX, L.btnApplyY, L.btnApplyW, L.btnApplyH,
+                  glm::vec4(accent.r * 0.25f, accent.g * 0.25f, accent.b * 0.25f, 0.90f));
+        text.rect(L.btnApplyX, L.btnApplyY, L.btnApplyW, 1.5f, accent);
+        text.text("APPLICA (Invio)", L.btnApplyX + 12.0f, L.btnApplyY + 18.0f, 0.40f, accent);
     }
 
     std::vector<std::pair<std::string, std::string>> buildRows(const HudFrame& frame) const {

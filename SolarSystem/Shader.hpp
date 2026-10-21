@@ -132,4 +132,10 @@ struct UniformLocations {
     // Rings only: geometry of the body casting the shadow onto them.
     GLint parentCenter;
     GLint parentRadius;
+
+    // Dynamic Eclipse Shadowing
+    GLint sunRadius;
+    GLint shadowCasterCount;
+    GLint shadowCasterPos;
+    GLint shadowCasterRadius;
 };

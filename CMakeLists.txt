@@ -26,7 +26,7 @@ FetchContent_MakeAvailable(glm)
 add_library(common INTERFACE)
 target_compile_features(common INTERFACE cxx_std_17)
 target_compile_options(common INTERFACE
-    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -DGL_SILENCE_DEPRECATION>
+    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wextra -DGL_SILENCE_DEPRECATION>
 )
 
 find_package(OpenGL REQUIRED)
