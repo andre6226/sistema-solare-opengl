@@ -1,6 +1,31 @@
-# Solar System — Quick Guide
+# Solar System — AI-slopped but NASA-accurate edition
 
-A real-time solar system renderer in modern OpenGL (3.3 core), built with SFML for windowing and GLM for the maths. Bodies are arranged in a scene graph, so moons inherit their planet's frame of reference, and orbital and physical data come from real measurements compressed to a viewable scale. The project was developed as part of the final examination project for the Fundamentals of Computer Graphics course in the Computer Science degree program at the University of Genoa.
+> This branch is the original [Fundamentals of Computer Graphics](https://github.com/andre6226/sistema-solare-opengl)
+> project (University of Genoa) after an AI pair-programming session that went a
+> little overboard. The renderer is the same; the sky it draws is now the real one,
+> to the second, from **1900 to 2200**. See `main` for the course version.
+
+A real-time solar system renderer in modern OpenGL (3.3 core), built with SFML and
+GLM. Pick any date between 1900 and 2200 and every body sits where it really was,
+or will be, turned the way it really faces.
+
+## What "accurate" means here
+
+| What | Source | Checked against | Result |
+|---|---|---|---|
+| Sun, planets, Moon | JPL **DE440** ephemeris | JPL `testpo.440` | 2 mm worst case |
+| Solar eclipses | DE440 + light time + aberration | NASA Five Millennium Catalog, 23 total/annular eclipses 1901–2200 | greatest eclipse within **0.5 s** (TD), gamma to 4 decimals |
+| Earth's rotation | IAU 2006 precession, DE440 nutation, Earth Rotation Angle | subsolar point vs equation of time and declination | < 0.3° |
+| Clock (UTC ↔ TT) | ΔT measured by USNO, 1900–2026 | — | exact for the past, a forecast after 2026 |
+| Poles, spin, shape | IAU WGCCRE 2015 (NAIF `pck00011.tpc`) | — | oblate Saturn, Jupiter, Earth; real prime meridians |
+| Moon's orientation | DE440 lunar librations | — | the near side faces Earth, with libration |
+| 19 planetary moons | JPL satellite ephemerides (Horizons) | held-out JPL samples | mean orbit + correction tables, target < 1 km (*tables being generated*) |
+| Saturn's rings | texture measured on the Cassini division and Encke gap | — | C ring to F ring at the real radii |
+
+**The one thing no model fixes:** after 2026 the time shown is UTC predicted
+with a forecast of ΔT, the drift of Earth's rotation. Eclipses stay exact in
+dynamical time, but their UTC clock time can be off by about a minute in 2100
+and by several minutes by 2200. Nobody can do better until it happens.
 
 ## Gallery
 
@@ -20,51 +45,57 @@ A real-time solar system renderer in modern OpenGL (3.3 core), built with SFML f
 
 *Saturn*
 
-## Build
-
-From the project root:
+## Build and run
 
 ```
 cmake -B build -D CMAKE_BUILD_TYPE=Release
 cmake --build build
-```
-
-SFML and GLM are fetched automatically by CMake, so the first configure needs a
-network connection.
-
-## Run
-
-```
 ./build/SolarSystem.bin
 ```
 
-Textures and shaders are loaded through relative paths. The build copies both
-`resources/` and `SolarSystem/` next to the binary, so the program can be
-launched either from the project root or from `build/`.
+SFML and GLM are fetched by CMake on the first configure. The build copies
+`resources/` (including the ~28 MB ephemeris and the moon tables) and the shaders
+next to the binary.
 
 ## Controls
 
-* **Mouse:** hold the **left button** to orbit the view, use the **wheel** to
-  zoom in and out on the current target. Zoom is multiplicative and its lower
-  bound adapts to the size of the body in view.
-* **Navigation:** `UP` selects the parent (towards the Sun), `DOWN` the first
-  child (towards a moon), `LEFT`/`RIGHT` cycle through the siblings — for
-  example among Jupiter's moons. The on-screen panel shows where you are in the
-  hierarchy and the real measurements for the body in view.
-* **Time:** `SHIFT` speeds the orbits up, `CTRL` slows them down, `SPACE` resets
-  to normal speed. The multiplier is clamped to the range 0.001x–1000x.
+* **Mouse:** left button to orbit the view, wheel to zoom.
+* **Navigation:** `UP` parent, `DOWN` first moon, `LEFT`/`RIGHT` siblings.
+* **Time:** `T` opens the date picker (1900–2200, UTC); `SHIFT`/`CTRL` speed
+  time up or down, `SPACE` back to real time.
+* **Orbits:** `O` toggles the orbit lines. The focused body's own orbit is hidden.
 
-## Shape models
+## Try it
 
-Phobos and Deimos are not spheres, so they are not drawn as spheres. Their
-geometry comes from the shape models measured by P. C. Thomas from Viking
-imagery, archived at the PDS Small Bodies Node:
+* **2026-08-12 17:46 UTC:** total solar eclipse over Spain; look at Earth and
+  find the Moon's shadow.
+* **2027-08-02 10:07 UTC:** the long eclipse over North Africa and Egypt.
+* **1919-05-29 13:08 UTC:** the eclipse that confirmed general relativity.
+* **1999-08-11 11:03 UTC:** the last total eclipse over central Europe in the 20th century.
 
-    resources/models/Phobos.tab    91 x 181 grid, 2 degree spacing
-    resources/models/Deimos.tab    37 x  73 grid, 5 degree spacing
+## Regenerating the data
+
+Everything in `resources/` that comes from NASA/JPL is rebuilt by the scripts
+in `tools/`, from public files:
+
+| Script | Input | Output |
+|---|---|---|
+| `tools/de440_extract.py` | DE440 ASCII files from `ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de440/` | `resources/de440_1900_2200.bin` |
+| `tools/pck_extract.py` | `pck00011.tpc` from NAIF | `SolarSystem/IauRotation.hpp` |
+| `tools/satellite_fit.py` | Horizons API | `SolarSystem/SatelliteOrbits.hpp` |
+| `tools/satellite_tables.py` | Horizons API | `resources/moons/*.bin` |
+
+## Tests
+
+```
+bash tests/run_tests.sh
+```
+
+Includes the eclipse check against the NASA catalogue and the Earth
+orientation check.
 
 ## License
 
-The source code is released under the MIT License: see [LICENSE](LICENSE).
-Third-party files (the `glad/` loader, textures, font and shape models in
-`resources/`) remain under the terms of their respective authors.
+Source code under the MIT License, see [LICENSE](LICENSE). JPL/NASA ephemeris
+data are public domain. Third-party files (the `glad/` loader, textures, font
+and shape models in `resources/`) remain under the terms of their authors.
