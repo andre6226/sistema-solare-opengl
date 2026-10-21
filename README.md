@@ -131,8 +131,11 @@ rule, the one NASA's lunar eclipse catalogue uses): the umbral magnitude of
 2026-08-28 comes out 0.933 against NASA's 0.930. Inside it, the Moon gets the
 sunlight Earth's atmosphere bends in: deep red near the axis, copper towards the
 edge. That glow is a chosen colour, not a computed one. On the Moon the lit share
-is gamma-encoded for the eye, or the sliver of a partial eclipse, lit by 3% of
-the Sun, would look black.
+is mapped on a log scale, as the eye sees it next to an umbra ~10,000 times
+darker: otherwise the sliver of a partial eclipse, lit by 0.04–3% of the Sun,
+would look black. The Moon is also shaded with the Lommel–Seeliger law of dusty,
+airless surfaces, so the full Moon stays bright out to its limb instead of
+darkening there as a Lambert sphere does.
 
 ### Which way things face
 

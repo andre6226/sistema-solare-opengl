@@ -19,7 +19,7 @@ fi
 # name | UTC date | body | extra options (camera offsets from the Sun's direction)
 SCENES=(
     "solar_eclipse_2026|2026-08-12T17:46:00|Earth|--azimuth 20 --elevation 65"   # greatest eclipse, shadow off Iceland, heading for Spain
-    "lunar_partial|2026-08-28T04:13:00|Moon|"        # umbral magnitude 0.93: the sliver is in deep penumbra, so dim
+    "lunar_partial|2026-08-28T04:13:00|Moon|--distance 16000"   # umbral magnitude 0.93: thin lit sliver at the top, clear of the HUD
     "lunar_total|2025-09-07T18:11:00|Moon|"
     "saturn_rings|2026-10-21T00:00:00|Saturn|--elevation 30"   # rings only ~8 deg open to the Sun in 2026
     "jupiter_io_shadow|2026-02-05T05:05:00|Jupiter|"  # mid shadow transit

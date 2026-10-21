@@ -107,6 +107,9 @@ void main() {
 
     // Lambert (diffuse)
     float diff = max(dot(normal, lightDir), 0.0);
+    // The Moon (the only body Earth shadows) is dusty regolith: Lommel-Seeliger, so
+    // the full Moon is evenly bright to its limb instead of Lambert-dark there.
+    if (casterHasAtmosphere > 0.5) diff = 2.0 * diff / (diff + max(dot(normal, viewDir), 0.0) + 1e-4);
     vec3 diffuse = diff * vec3(1.0);
 
     // Blinn-Phong (specular), gated by the same cosine as the diffuse term.
@@ -141,10 +144,11 @@ void main() {
             }
         }
     }
-    // On the Moon in Earth's shadow, encode the linear fraction for the eye, or a
-    // sliver lit by 3% of the Sun would look black; seen from space, Earth keeps the
-    // linear penumbra, the dark patch that photos of solar eclipses show.
-    if (casterHasAtmosphere > 0.5) shadowFactor = pow(shadowFactor, 1.0 / 2.2);
+    // On the Moon in Earth's shadow, map the lit fraction as the eye does, on a log
+    // scale against an umbra ~10^4 times darker: the sliver of a partial eclipse, lit
+    // by 0.04-3% of the Sun, then reads 18-63% bright instead of black. Seen from
+    // space, Earth keeps the linear penumbra that photos of solar eclipses show.
+    if (casterHasAtmosphere > 0.5) shadowFactor = log(1.0 + 1e4 * shadowFactor) / log(1.0 + 1e4);
 
     // The rings' shadow: where the ray towards the Sun crosses the ring plane, the
     // light left is what the ring texture lets through at that radius. The branch is
