@@ -244,6 +244,7 @@ in `tools/`, from public files:
 | `tools/satellite_fit.py` | Horizons API | `SolarSystem/SatelliteOrbits.hpp` |
 | `tools/satellite_tables.py` | Horizons API | `resources/moons/*.bin` |
 | `tools/smallbody_tables.py` | Horizons API | `resources/bodies/*.bin` |
+| `tools/ceres_texture.py` | Dawn FC global mosaic, `planetarymaps.usgs.gov/mosaic/Ceres_Dawn_FC_DLR_global_59ppd_Feb2016.cub` (214 MB) | `resources/Ceres.jpg` |
 
 ## Tests
 
@@ -264,3 +265,5 @@ refresh the references with `tests/visual/render_refs.sh tests/visual/ref`.
 Source code under the MIT License, see [LICENSE](LICENSE). JPL/NASA ephemeris
 data are public domain. Third-party files (the `glad/` loader, textures, font
 and shape models in `resources/`) remain under the terms of their authors.
+Ceres's map is the Dawn Framing Camera global mosaic by DLR (NASA/JPL-Caltech/
+UCLA/MPS/DLR/IDA), distributed by the USGS Astrogeology Science Center.
