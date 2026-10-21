@@ -266,6 +266,25 @@ int main() {
             assert(glm::length(p - glm::dvec3(c.x, c.y, c.z)) < 1.0);
         }
 
+        // Halley's line far from the Sun (SolarSystem::applyEphemeris blends to the
+        // barycentre past 10 AU) holds still: perihelion distance steady to 0.1% over
+        // 1990-2055, where the heliocentric ellipse swings 5% with Jupiter.
+        {
+            const MoonTable halley("resources/bodies/Halley.bin");
+            double planets = 0.0, qMin = 1e30, qMax = 0.0;
+            for (int i = 1; i < 10; ++i) planets += eph.gravitationalParameter(i);
+            for (double jd = 2448000.0; jd < 2472000.0; jd += 97.0) {
+                const auto sunAt = [&](double j) { return eph.evaluate(Ephemeris::Sun, j).position; };
+                const double w = glm::smoothstep(3.0, 10.0, glm::length(halley.offset(jd) - sunAt(jd)) / Astro::AU_KM);
+                const auto rel = [&](double j) { return halley.offset(j) - (1.0 - w) * sunAt(j); };
+                const Astro::KeplerianBasis b = Astro::osculatingBasis(rel(jd), (rel(jd + 0.5) - rel(jd - 0.5)) / Astro::SECONDS_PER_DAY,
+                                                                       eph.gravitationalParameter(0) + w * planets);
+                qMin = std::min(qMin, b.a_km * (1.0 - b.e));
+                qMax = std::max(qMax, b.a_km * (1.0 - b.e));
+            }
+            assert(qMax / qMin < 1.001);
+        }
+
         // Mars 1.03 days
         const double T_mars = T0 + 1.03 / Astro::DAYS_PER_JULIAN_CENTURY;
         const double marsRot0 = (D0 / Astro::Mars.rotationPeriodDays) * glm::two_pi<double>();

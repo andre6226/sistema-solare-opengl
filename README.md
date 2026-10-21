@@ -268,6 +268,12 @@ outwards the ellipse is taken about the solar-system barycentre: the Sun
 wobbles round it under Jupiter's pull, and heliocentric ellipses of the slow
 outer planets would wobble with it.
 
+Asteroids, dwarf planets and Halley do the same by distance: about the Sun inside
+3 AU, about the barycentre (with the planets' mass) beyond 10 AU, blended in
+between. Far out, the heliocentric ellipse of Halley breathed with Jupiter's
+12-year period, its perihelion between 0.57 and 0.60 AU; about the barycentre
+it holds at 0.584 AU to 0.1%, and changes only at its passages among the planets.
+
 ### Saturn's rings
 
 The ring texture was measured against the real ring system: the C ring's inner

@@ -517,13 +517,21 @@ private:
                 const double n = link.moon->meanMotion / Astro::SECONDS_PER_DAY, a = std::abs(link.moon->a);
                 link.body->setEphemerisOffset(at(jdTdb), Astro::osculatingBasis(at(jdTdb), v, n * n * a * a * a));
             } else if (link.moonTable != nullptr) {
-                // Asteroids and dwarf planets: barycentric JPL position minus the DE440 Sun,
-                // orbit line osculating.
-                const auto helio = [&](double jd) { return link.moonTable->offset(jd) - ephemeris.evaluate(Ephemeris::Sun, jd).position; };
-                const glm::dvec3 p = helio(jdTdb);
-                const glm::dvec3 v = helio(jdTdb + 0.5) - helio(jdTdb - 0.5);  // km/day
-                link.body->setEphemerisOffset(toWorld * p,
-                    Astro::osculatingBasis(toWorld * p, toWorld * v / Astro::SECONDS_PER_DAY, ephemeris.gravitationalParameter(0)));
+                // Asteroids, dwarf planets, Halley: barycentric JPL position minus the DE440 Sun.
+                // The orbit line osculates about the Sun near it, and about the barycentre
+                // (with the planets' mass) far out, blended between 3 and 10 AU: there the
+                // Sun's 12-year wobble under Jupiter would make Halley's ellipse breathe.
+                const auto sunAt = [&](double jd) { return ephemeris.evaluate(Ephemeris::Sun, jd).position; };
+                const glm::dvec3 p = link.moonTable->offset(jdTdb) - sunAt(jdTdb);
+                const double w = glm::smoothstep(3.0, 10.0, glm::length(p) / Astro::AU_KM);
+                const auto rel = [&](double jd) { return link.moonTable->offset(jd) - (1.0 - w) * sunAt(jd); };
+                const glm::dvec3 v = rel(jdTdb + 0.5) - rel(jdTdb - 0.5);  // km/day
+                double mu = 0.0;
+                for (int i = 1; i < 10; ++i) mu += ephemeris.gravitationalParameter(i);
+                Astro::KeplerianBasis b = Astro::osculatingBasis(toWorld * rel(jdTdb), toWorld * v / Astro::SECONDS_PER_DAY,
+                                                                 ephemeris.gravitationalParameter(0) + w * mu);
+                b.focus_world = toWorld * (-w * sunAt(jdTdb));   // the blended centre, from the Sun
+                link.body->setEphemerisOffset(toWorld * p, b);
             } else if (link.deItem >= 0) {
                 const auto item = static_cast<Ephemeris::Item>(link.deItem);
                 const Ephemeris::State p = (item == Ephemeris::EarthMoonBarycentre)
