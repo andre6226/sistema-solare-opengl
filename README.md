@@ -323,6 +323,12 @@ brighter or dimmer as it really is. From near Earth, Saturn gets 1/90 of Earth's
 sunlight and Mercury 6.6 times. Nearer the Sun than 0.2 AU the exposure stops
 following, so Mercury and the Sun's surroundings are not lit to black.
 
+The Sun itself is drawn in its true colour, not the orange of the usual false-colour
+maps: a 5772 K black body seen through the CIE 1931 observer is a faint peach-white
+on screen (#FFF1EA). The texture keeps only its granulation, and the limb darkens
+more in blue than in red, so the edge is dimmer and warmer. The glare around it is
+the same colour.
+
 ### Orbit lines
 
 Each planet's line is its osculating ellipse, the orbit it would follow if every

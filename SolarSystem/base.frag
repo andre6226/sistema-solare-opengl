@@ -65,6 +65,10 @@ uniform float ringInner;
 uniform float ringDustBelow;
 const float RING_OUTER = 1.0;
 
+// The photosphere's colour in linear sRGB: a 5772 K black body through the CIE 1931
+// observer, white point D65 (peach-white, #FFF1EA on screen).
+const vec3 SUN_COLOR = vec3(1.0, 0.879, 0.822);
+
 // Area shared by two discs of radii r1, r2 whose centres are d apart.
 float discOverlap(float r1, float r2, float d) {
     if (d >= r1 + r2) return 0.0;
@@ -80,8 +84,11 @@ void main() {
         vec3 viewDir = normalize(cameraPos - vWorldPos);
         float ndotv  = clamp(dot(normalize(vNormal), viewDir), 0.0, 1.0);
         float corona = pow(ndotv, 3.2) * 0.55;
-        vec3 glowColor = mix(vec3(1.0, 0.55, 0.12), vec3(1.0, 0.96, 0.85), pow(ndotv, 1.6));
-        FragColor = vec4(glowColor * corona, corona);
+        // Only around the disc: in front of it the glow would wash the photosphere out.
+        vec3 ray = normalize(vWorldPos - cameraPos);
+        if (length(cross(lightPos - cameraPos, ray)) < sunRadius) discard;
+        // The corona and glare are scattered sunlight: the photosphere's colour, not orange.
+        FragColor = vec4(SUN_COLOR * corona, corona);
         return;
     }
 
@@ -148,11 +155,13 @@ void main() {
     if (bodyType == BODY_SUN) {
         vec3 viewDir = normalize(cameraPos - vWorldPos);
         float ndotv  = clamp(dot(normalize(vNormal), viewDir), 0.0, 1.0);
-        // Overexpose the solar texture so granulation shows through a blinding
-        // white-gold incandescence up close.
-        vec3 texGlow = pow(texColor.rgb, vec3(0.80)) * 1.9;
-        vec3 dazzle  = vec3(1.0, 0.94, 0.78) * (0.45 + 0.55 * pow(ndotv, 1.8));
-        FragColor = vec4(texGlow + dazzle, 1.0);
+        // The texture is false-colour orange; keep only its granulation, as brightness,
+        // with the 47% rms contrast of the map cut to ~12% (white-light granulation).
+        float gran = 1.0 + 0.25 * (dot(texColor.rgb, vec3(0.2126, 0.7152, 0.0722)) / 0.406 - 1.0);
+        // Limb darkening, stronger in blue, so the edge turns dimmer and redder.
+        // shortcut: linear law with rough coefficients per channel, use Neckel & Labs (1994) polynomials if the limb profile matters.
+        vec3 limb = vec3(1.0) - vec3(0.58, 0.67, 0.78) * (1.0 - ndotv);
+        FragColor = vec4(SUN_COLOR * limb * gran, 1.0);
         return;
     }
 
