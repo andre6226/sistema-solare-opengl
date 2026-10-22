@@ -211,7 +211,21 @@ int main() {
                                   MoonCheck{"Hyperion", 2420000.123, -1201004.484, -585016.214, 130579.231},
                                   MoonCheck{"Proteus", 2470000.371, 60684.883, -54553.200, -84728.111},
                                   MoonCheck{"Nereid", 2500000.6, 4593619.233, 3329112.974, 2039225.231},
-                                  MoonCheck{"Nereid", 2433500.25, 2408248.978, 8227790.643, 4408314.831}}) {
+                                  MoonCheck{"Nereid", 2433500.25, 2408248.978, 8227790.643, 4408314.831},
+                                  MoonCheck{"Metis", 2418000.123000, -52026.777, -105187.625, -50980.436},
+                                  MoonCheck{"Adrastea", 2430500.377000, -30544.959, -112971.693, -54348.494},
+                                  MoonCheck{"Amalthea", 2490000.611000, -180986.523, 12522.349, 4328.987},
+                                  MoonCheck{"Thebe", 2520000.913000, -211695.163, 50482.445, 17701.214},
+                                  MoonCheck{"Pan", 2436000.271000, 73814.508, -111322.144, 1856.442},
+                                  MoonCheck{"Atlas", 2445000.832000, 127606.740, 49361.874, -14616.707},
+                                  MoonCheck{"Prometheus", 2452000.455000, -91597.312, -103792.862, 15513.791},
+                                  MoonCheck{"Pandora", 2459000.099000, 136156.119, -37068.210, -9106.126},
+                                  MoonCheck{"Epimetheus", 2462000.744000, 120478.083, -89811.278, -3258.587},
+                                  MoonCheck{"Janus", 2467000.388000, -104118.131, 111003.212, 1059.185},
+                                  MoonCheck{"Puck", 2480000.555000, -47686.178, -9031.255, 71122.247},
+                                  MoonCheck{"Despina", 2425000.666000, 48866.838, 16264.628, -10239.094},
+                                  MoonCheck{"Galatea", 2475000.222000, 51186.808, 34550.934, 4970.829},
+                                  MoonCheck{"Larissa", 2505000.444000, -51300.189, 22626.610, 47731.644}}) {
             for (const Astro::SatelliteOrbit& s : Astro::satelliteOrbits()) {
                 if (std::string(s.name) != c.name) continue;
                 const glm::dvec3 p = Orbits::moonPosition(s, MoonTable(std::string("resources/moons/") + c.name + ".bin"), c.jd);
@@ -219,7 +233,7 @@ int main() {
                 ++moonsChecked;
             }
         }
-        assert(moonsChecked == 24);
+        assert(moonsChecked == 38);
         // Hyperion's HUD period (Orbits::measuredTurn): one turn on the real path, 21.28 d
         // on average, a few tenths either way with Titan's tug; its osculating ellipse
         // would say ~22 d. The rest keep their mean values.
@@ -261,7 +275,7 @@ int main() {
             }
         }
 
-        // Asteroids and dwarf planets: barycentric table minus the DE440 Sun, against
+        // Asteroids, dwarf planets, comets, Kuiper belt: barycentric table minus the DE440 Sun, against
         // JPL Horizons heliocentric ICRF km (short requests, off the table grid): within 1 km.
         struct BodyCheck { const Astro::BodyData* body; double jd, x, y, z; };
         for (const BodyCheck& c : {
@@ -275,7 +289,17 @@ int main() {
                                   BodyCheck{&Astro::Eris, 2500941.770000, 6375868801.281, 6675202882.429, 6302981683.622},
                                   BodyCheck{&Astro::Makemake, 2512962.270000, 4900546273.837, -195445917.756, -3154151491.973},
                                   BodyCheck{&Astro::Halley, 2446470.8, 50111949.728, -72019365.066, -4035751.484},   // perihelion 1986
-                                  BodyCheck{&Astro::Halley, 2418000.4, -174233512.009, 1200488793.779, 249558487.450}}) {
+                                  BodyCheck{&Astro::Halley, 2418000.4, -174233512.009, 1200488793.779, 249558487.450},
+                                  BodyCheck{&Astro::Encke, 2449000.310000, 553832482.699, -95623819.508, -5729638.862},
+                                  BodyCheck{&Astro::Tempel1, 2453555.700000, -87765379.670, -190942567.720, -81300558.536},
+                                  BodyCheck{&Astro::ChuryumovGerasimenko, 2436700.420000, -488835966.295, -618768122.346, -272724479.156},
+                                  BodyCheck{&Astro::Hartley2, 2455505.600000, 102507902.097, 114293212.187, 42171780.859},
+                                  BodyCheck{&Astro::HaleBopp, 2450539.400000, -18053605.325, 37770938.063, 130194140.876},
+                                  BodyCheck{&Astro::Quaoar, 2430000.170000, -6701766425.607, 458062162.880, -22443782.526},
+                                  BodyCheck{&Astro::Orcus, 2485000.830000, -2659309977.937, -4295100399.635, -2897858033.743},
+                                  BodyCheck{&Astro::Gonggong, 2500000.290000, 14661410769.126, -1242411677.096, 3315350876.314},
+                                  BodyCheck{&Astro::Sedna, 2520000.610000, -14713832411.728, 4300849638.210, 2883287166.337},
+                                  BodyCheck{&Astro::Arrokoth, 2458484.700000, 1801956525.158, -5789628400.793, -2269550382.825}}) {
             const glm::dvec3 p = MoonTable(std::string("resources/bodies/") + c.body->name + ".bin").offset(c.jd)
                 - eph.evaluate(Ephemeris::Sun, c.jd).position;
             assert(glm::length(p - glm::dvec3(c.x, c.y, c.z)) < 1.0);

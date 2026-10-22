@@ -59,11 +59,14 @@ SAMPLING = {'Phobos': (2, 14), 'Deimos': (2, 14), 'Io': (1, 12), 'Europa': (1, 1
             'Callisto': (0.25, 12), 'Mimas': (0.5, 8), 'Enceladus': (1, 12), 'Tethys': (1, 12), 'Dione': (1, 12), 'Rhea': (1, 12),
             'Titan': (0.5, 10), 'Iapetus': (0.125, 12), 'Miranda': (1, 10), 'Ariel': (1, 14), 'Umbriel': (1, 12),
             'Titania': (0.5, 10), 'Oberon': (0.5, 12), 'Triton': (1, 8), 'Charon': (2, 8),
-            'Hyperion': (0.25, 14), 'Proteus': (1, 12), 'Nereid': (1 / 64, 12)}
+            'Hyperion': (0.25, 14), 'Proteus': (1, 12), 'Nereid': (1 / 64, 12),
+            **{m: (2, 14) for m in ('Metis', 'Adrastea', 'Amalthea', 'Thebe', 'Pan', 'Atlas', 'Prometheus', 'Pandora',
+                                    'Epimetheus', 'Janus', 'Puck', 'Despina', 'Galatea', 'Larissa')}}
 
 
 def build(cache, moon, p, out_dir):
     name, target, centre, period = moon[:4]
+    JD_START, JD_STOP = sf.SPAN.get(name, (globals()['JD_START'], globals()['JD_STOP']))
     seg, nc = SAMPLING[name][0] * period, SAMPLING[name][1]
     samples = 2 * nc                       # per download segment, ~2x oversampled
     step = seg / samples

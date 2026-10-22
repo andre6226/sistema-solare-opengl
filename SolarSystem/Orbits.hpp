@@ -25,10 +25,11 @@ namespace Orbits {
     }
 
     // Hyperion and Nereid, pulled off any ellipse by Titan and the Sun (fit errors ~16 deg
-    // against under 0.4 deg for the rest), osculating ones too: Hyperion's says 22.0 d for
-    // 21.3. Their HUD values are the time one turn takes on the real path round now, and
-    // half its nearest plus farthest distance.
-    inline bool offAnyEllipse(const Astro::SatelliteOrbit& s) { return s.fitErrorDeg > 1.0; }
+    // against under 6 deg for the rest: Janus and Epimetheus swapping orbits, Prometheus and
+    // Pandora's chaotic drift), osculating ones too: Hyperion's says 22.0 d for 21.3. Their
+    // HUD values are the time one turn takes on the real path round now, and half its
+    // nearest plus farthest distance.
+    inline bool offAnyEllipse(const Astro::SatelliteOrbit& s) { return s.fitErrorDeg > 10.0; }
 
     inline Astro::KeplerianBasis measuredTurn(const Astro::SatelliteOrbit& s, const MoonTable& table, double jdTdb) {
         const double turn = glm::two_pi<double>() / s.meanMotion;

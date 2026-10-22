@@ -19,11 +19,13 @@ or will be, turned the way it really faces.
 | Clock (UTC ↔ TT ↔ UT1) | IERS leap seconds from 1972; ΔT measured by USNO, 1900–2026 | — | UTC ↔ TT exact (no leap seconds assumed after 2016); Earth's rotation a forecast after 2026 |
 | Poles, spin, shape | IAU WGCCRE 2015 (NAIF `pck00011.tpc`) | — | oblate Saturn, Jupiter, Earth; real prime meridians |
 | Moon's orientation | DE440 lunar librations | — | the near side faces Earth, with libration |
-| 23 planetary moons | JPL satellite ephemerides (Horizons) | JPL samples the tables never saw, 1900–2200 | mean orbit + correction tables: **< 1 km** for every moon (worst: Miranda, 0.92 km), 159 MB |
+| 37 planetary moons | JPL satellite ephemerides (Horizons) | JPL samples the tables never saw, 1900–2200 | mean orbit + correction tables: **< 1 km** for every moon (worst: Miranda, 0.92 km), 387 MB; Saturn's six small moons only 1950–2050, Puck 1900–2100 (JPL's span) |
 | Asteroids and dwarf planets (Ceres, Pallas, Vesta, Ida, Eros, Gaspra, Haumea, Eris, Makemake) | JPL small-body ephemerides (Horizons) | 20 short JPL requests per body the tables never saw, 1900–2200 | **< 0.3 km**, median tens of metres, 2 MB |
 | Comet 1P/Halley | JPL small-body ephemeris, solution #75 with non-gravitational forces (Horizons) | 2 JPL positions off the table grid (perihelion 1986, 1908) | **< 0.6 km**, 2.6 MB |
+| Comets Encke, Tempel 1, 67P, Hartley 2, Hale-Bopp; Kuiper belt Quaoar, Orcus, Gonggong, Sedna, Arrokoth | JPL small-body ephemerides (Horizons) | one JPL position off the table grid each | **< 1 km**, 6.7 MB |
 | Main asteroid belt | osculating elements of the ~58,000 numbered main-belt asteroids brighter than H 15 (JPL Small-Body Database) | — | Kepler orbits about the Sun: a picture of the belt, not an ephemeris |
 | Saturn's rings | texture measured on the Cassini division and Encke gap; opacity from Cassini's radio occultation (PDS Rings Node, Rev 7, 10 km) | — | D ring to F ring at the real radii |
+| Uranus's rings | radii from French's 2020 occultation fit (PDS Rings Node); widths and opacities from French et al. 1991 | — | the ten narrow rings and the dusty ζ, drawn circular |
 
 **The one thing no model fixes:** Earth's rotation after 2026. UTC is kept as
 atomic time plus the leap seconds of IERS (37 s since 2017), and no more are
@@ -255,6 +257,18 @@ eccentricity, and its table runs in 5.6-day segments to keep up at periapsis
 13 days, Nereid on the 11.5 hours Kepler measured. Their maps, and Proteus's, are
 one even colour from their albedo: no spacecraft mapped them whole.
 
+Fourteen small inner moons go the same way: Metis, Adrastea, Amalthea and Thebe
+round Jupiter; Pan, Atlas, Prometheus, Pandora, Epimetheus and Janus among
+Saturn's rings; Puck at Uranus; Despina, Galatea and Larissa at Neptune. Their
+orbits are short (7 to 18 hours), so their tables are the largest, 4 to 28 MB each
+(228 MB in all, 0.15–0.77 km). JPL's ephemeris of Saturn's small moons only runs
+from 1950 to 2050 and Puck's from 1900 to 2100: their fits and tables cover just
+that, and outside it they move on the mean orbit alone, the right orbit with the
+moon somewhere uncertain along it. Prometheus and Pandora drift chaotically and
+Janus and Epimetheus swap orbits every four years, so even inside the span their
+mean orbits miss by 2–6° and the tables carry the rest. The maps are one colour
+each, as for Hyperion; the shapes are pck00011's triaxial ellipsoids.
+
 ### Asteroids and dwarf planets
 
 They are not in DE440, so their positions come from JPL's small-body
@@ -268,7 +282,7 @@ these orbits on request, and one request spanning centuries drifts by up to
 15 km, so the samples come in requests of at most 10,000 days. The fixed Kepler
 ellipses these tables replace were off by tens of degrees (Ceres by 80° in 2026).
 
-### Comet Halley and the asteroid belt
+### Comets, the Kuiper belt and the asteroid belt
 
 Halley moves on JPL's own solution, non-gravitational forces included, sampled
 every 6 hours: inside 0.6 AU of the Sun a day is too coarse to fit. Its nucleus is
@@ -279,6 +293,15 @@ by the solar wind. The dust tail is broad and yellowish, leans about 25° off th
 line towards where the comet came from and curves further back, since sunlight
 pushes the grains only gently and they lag behind on the orbit. Both are drawn
 shapes, not a particle simulation.
+
+Encke (3.3-year orbit, perihelion 0.34 AU), Tempel 1 (Deep Impact, 2005), 67P
+(Rosetta, 2014–2016), Hartley 2 (EPOXI, 2010) and Hale-Bopp (perihelion 1997-04-01)
+come the same way, from JPL's latest solution for each, integrated back and forward
+over the 300 years: 67P's passed Jupiter in 1959, which pulled its perihelion in
+from 2.7 to 1.3 AU. Their nuclei are ellipsoids of the measured size and as dark
+as Halley's. They get Halley's coma and tails, a shortcut: Hale-Bopp's were about
+ten times larger and woke at 7 AU. Out past Neptune, Quaoar, Orcus, Gonggong, Sedna
+and Arrokoth follow the dwarf planets' scheme, in 2,048-day segments of a few kB.
 
 The main belt is ~58,000 points, one per numbered asteroid brighter than H 15 (all
 the ones larger than about 3 km), each on its own Kepler ellipse solved on the GPU.
@@ -370,6 +393,20 @@ faces: a percent or two of sunlight near the globe, falling as (R/d)³, all the
 light the rings get inside Saturn's shadow. Since the 2025 equinox the Sun lights the south face, so from the north
 the rings look dark until 2039.
 
+### Uranus's rings
+
+Ten narrow rings, from ring 6 at 41,837 km to ε at 51,149 km, plus the dusty ζ ring
+inside them (`tools/uranus_rings.py` → `resources/UranusRings.png`). Their radii
+are the semimajor axes of R. French's 2020 fit to Earth-based and Voyager
+occultations (PDS Rings Node, `uranus_occs_earthbased`), λ's from Voyager 2; their
+widths (1.5 to 58 km) and optical depths (0.1 to 1.5) are the mean values of French
+et al. 1991. Each texel of 1.6 km keeps the share of light its ring blocks, so a
+2 km ring still dims what is behind it by the right amount. The particles are as
+dark as charcoal (albedo 0.04), so the rings barely show except when backlit:
+as from Earth, where they were only found by a star blinking behind them in 1977.
+They are drawn circular: ε is eccentric (0.008) and swings 400 km in and out,
+from 20 to 96 km wide, which the ring shader does not model.
+
 
 ## Earth's clouds, lights and air
 
@@ -401,7 +438,8 @@ in `tools/`, from public files:
 | `tools/satellite_tables.py` | Horizons API | `resources/moons/*.bin` |
 | `tools/smallbody_tables.py` | Horizons API | `resources/bodies/*.bin` |
 | `tools/asteroid_belt.py` | JPL Small-Body Database query API | `resources/asteroid_belt.bin` |
-| `tools/moon_textures.py` | Blue Marble surface and clouds, Black Marble 2016 night lights (NASA Earth Observatory), LRO colour Moon (NASA SVS CGI Moon Kit), USGS global mosaics of Io, Europa, Ganymede, Callisto, Enceladus, Tethys, Phobos | `resources/{Earth,EarthClouds,EarthNight,Moon,Io,...}.jpg`, plus the plain maps of Hyperion, Proteus, Nereid and Halley |
+| `tools/moon_textures.py` | Blue Marble surface and clouds, Black Marble 2016 night lights (NASA Earth Observatory), LRO colour Moon (NASA SVS CGI Moon Kit), USGS global mosaics of Io, Europa, Ganymede, Callisto, Enceladus, Tethys, Phobos | `resources/{Earth,EarthClouds,EarthNight,Moon,Io,...}.jpg`, plus the plain maps of the small moons, comets and Kuiper belt objects |
+| `tools/uranus_rings.py` | `uranus_occultation_ring_fit_rfrench_20201201.tab` from `pds-rings.seti.org/pds4/bundles/uranus_occs_earthbased/uranus_occ_support/data/` | `resources/UranusRings.png` |
 | `tools/asteroid_texture.py` | Dawn FC global mosaics of Ceres and Vesta (`planetarymaps.usgs.gov/mosaic/`), NEAR MSI global basemap of Eros (PDS Small Bodies Node) | `resources/{Ceres,Vesta,Eros}.jpg` |
 
 ## Tests

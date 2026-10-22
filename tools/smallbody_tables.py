@@ -28,7 +28,15 @@ BODIES = [('Ceres', '1;', 1, (8, 16, 32, 64)), ('Pallas', '2;', 1, (8, 16, 32, 6
           ('Haumea', '136108;', 8, (256, 512, 1024, 2048)), ('Eris', '136199;', 8, (256, 512, 1024, 2048)),
           ('Makemake', '136472;', 8, (256, 512, 1024, 2048)),
           # JPL's 1P solution #75; inside 0.6 AU of the Sun a day is too coarse to sample.
-          ('Halley', 'DES=1P;CAP;NOFRAG', 0.25, (2, 4, 8, 16, 32))]
+          ('Halley', 'DES=1P;CAP;NOFRAG', 0.25, (2, 4, 8, 16, 32)),
+          ('Encke', 'DES=2P;CAP;NOFRAG', 0.25, (2, 4, 8, 16, 32)),
+          ('Tempel 1', 'DES=9P;CAP;NOFRAG', 0.5, (4, 8, 16, 32)),
+          ('Churyumov-Gerasimenko', 'DES=67P;CAP;NOFRAG', 0.5, (4, 8, 16, 32)),
+          ('Hartley 2', 'DES=103P;CAP;NOFRAG', 0.5, (4, 8, 16, 32)),
+          ('Hale-Bopp', 'DES=C/1995 O1;CAP;NOFRAG', 0.5, (4, 8, 16, 32, 64)),
+          ('Quaoar', '50000;', 8, (256, 512, 1024, 2048)), ('Sedna', '90377;', 8, (256, 512, 1024, 2048)),
+          ('Orcus', '90482;', 8, (256, 512, 1024, 2048)), ('Gonggong', '225088;', 8, (256, 512, 1024, 2048)),
+          ('Arrokoth', '486958;', 8, (256, 512, 1024, 2048))]
 
 
 def build(cache, body, out_dir):
@@ -72,8 +80,10 @@ def build(cache, body, out_dir):
 
 def main(cache, out_dir):
     os.makedirs(out_dir, exist_ok=True)
-    with Pool(len(BODIES)) as pool:
-        for line in pool.starmap(build, [(cache, b, out_dir) for b in BODIES]):
+    only = os.environ.get('ONLY', '').split(',')
+    bodies = [b for b in BODIES if only == [''] or b[0] in only]
+    with Pool(min(6, len(bodies))) as pool:
+        for line in pool.starmap(build, [(cache, b, out_dir) for b in bodies]):
             print(line, flush=True)
 
 

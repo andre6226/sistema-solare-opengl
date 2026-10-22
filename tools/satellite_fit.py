@@ -29,11 +29,23 @@ MOONS = [('Phobos', 401, 499, 0.3187, 317.7, 52.9), ('Deimos', 402, 499, 1.2625,
          ('Oberon', 704, 799, 13.4632, 257.3, -15.2), ('Triton', 801, 899, 5.8770, 299.8, 43.1),
          ('Hyperion', 607, 699, 21.2766, 36.4, 84.0), ('Proteus', 808, 899, 1.1223, 299.4, 43.0),
          ('Nereid', 802, 899, 360.13, 270.0, 66.6),
-         ('Charon', 901, 999, 6.3872, 133.0, -6.2)]
+         ('Charon', 901, 999, 6.3872, 133.0, -6.2),
+         ('Metis', 516, 599, 0.294779, 268.1, 64.5), ('Adrastea', 515, 599, 0.29826, 268.1, 64.5),
+         ('Amalthea', 505, 599, 0.498179, 268.1, 64.5), ('Thebe', 514, 599, 0.6745, 268.1, 64.5),
+         ('Pan', 618, 699, 0.575, 40.6, 83.5), ('Atlas', 615, 699, 0.6019, 40.6, 83.5),
+         ('Prometheus', 616, 699, 0.612986, 40.6, 83.5), ('Pandora', 617, 699, 0.628804, 40.6, 83.5),
+         ('Epimetheus', 611, 699, 0.694333, 40.6, 83.5), ('Janus', 610, 699, 0.69466, 40.6, 83.5),
+         ('Puck', 715, 799, 0.761833, 257.3, -15.2), ('Despina', 805, 899, 0.334656, 299.4, 43.0),
+         ('Galatea', 806, 899, 0.428745, 299.4, 43.0), ('Larissa', 807, 899, 0.554654, 299.4, 43.0)]
+
+# JPL's span where it is shorter than 1900-2200: Saturn's small moons (SAT441) and Puck.
+# Outside it the app runs on the mean orbit alone.
+SPAN = {**{m: (2433282.5, 2469807.5) for m in ('Pan', 'Atlas', 'Prometheus', 'Pandora', 'Epimetheus', 'Janus')},
+        'Puck': (2415021.5, 2487980.5)}
 
 
 def horizons(cache, target, centre, start, stop, intervals):
-    path = os.path.join(cache, '%s_%d_%.1f_%.1f_%d.json' % (target, centre, start, stop, intervals))
+    path = os.path.join(cache, '%s_%d_%.1f_%.1f_%d.json' % (str(target).replace('/', '_'), centre, start, stop, intervals))
     if not os.path.exists(path):
         params = {'format': 'json', 'COMMAND': "'%s'" % target, 'EPHEM_TYPE': "'VECTORS'",
                   'CENTER': "'500@%d'" % centre, 'START_TIME': "'JD%.6f'" % start, 'STOP_TIME': "'JD%.6f'" % stop,
@@ -164,8 +176,9 @@ START_E = {'Nereid': 0.75}
 
 
 def fit_moon(cache, name, target, centre, period, ra0, dec0):
+    lo, hi = SPAN.get(name, (JD_1900, JD_LAST))
     stages = [(JD_FIRST, 30 * period, 1500), (JD_FIRST, 730.0, 3000), (JD_FIRST, 365.25 * 30, 6000),
-              (JD_FIRST, JD_LAST - JD_FIRST, 12000), (JD_1900, JD_LAST - JD_1900, 18000)]
+              (JD_FIRST, hi - JD_FIRST, 12000), (lo, hi - lo, 18000)]
     p = None
     for start, span, count in stages:
         t, xyz = horizons(cache, target, centre, start, start + span, count)
@@ -186,7 +199,8 @@ def fit_moon(cache, name, target, centre, period, ra0, dec0):
             p = fix_longitude(p, t, xyz)
             p = fit(p, t, xyz, a, free_pole=span > 365.25 * 100)
     # Independent check on a dense, unseen stretch late in the span.
-    tv, xv = horizons(cache, target, centre, 2506000.5, 2506000.5 + 40 * period, 2000)
+    check = min(2506000.5, hi - 40 * period - 1.0)
+    tv, xv = horizons(cache, target, centre, check, check + 40 * period, 2000)
     return p, errors_deg(p, t, xyz), errors_deg(p, tv, xv)
 
 

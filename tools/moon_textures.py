@@ -112,7 +112,17 @@ if os.path.exists(os.path.join(src, 'BlackMarble_2016_3km.jpg')):
 # Bodies no spacecraft mapped whole: one even colour from their measured albedo and hue
 # (Hyperion reddish, Cassini; Proteus and Nereid grey, Voyager 2; Halley's coal-dark
 # nucleus, Giotto). An honest blank beats an invented surface.
-PLAIN = {'Hyperion': (150, 128, 108), 'Proteus': (92, 90, 88), 'Nereid': (110, 108, 105), 'Halley': (46, 43, 40)}
+# The small moons and the Kuiper belt likewise: Jupiter's inner moons dark and red,
+# Saturn's ring moons icy, Uranus's and Neptune's dark grey; comet nuclei all coal-dark;
+# Sedna, Gonggong, Quaoar and Arrokoth red, Orcus grey.
+PLAIN = {'Hyperion': (150, 128, 108), 'Proteus': (92, 90, 88), 'Nereid': (110, 108, 105), 'Halley': (46, 43, 40),
+         'Metis': (95, 85, 75), 'Adrastea': (95, 88, 80), 'Amalthea': (150, 90, 70), 'Thebe': (110, 95, 85),
+         'Pan': (190, 185, 175), 'Atlas': (200, 195, 185), 'Prometheus': (190, 185, 180), 'Pandora': (195, 190, 185),
+         'Epimetheus': (180, 175, 170), 'Janus': (185, 180, 172), 'Puck': (70, 68, 66), 'Despina': (85, 83, 80),
+         'Galatea': (85, 83, 80), 'Larissa': (85, 83, 80),
+         **{c: (46, 43, 40) for c in ('Encke', 'Tempel 1', 'Churyumov-Gerasimenko', 'Hartley 2', 'Hale-Bopp')},
+         'Quaoar': (150, 110, 90), 'Orcus': (140, 138, 135), 'Gonggong': (150, 100, 80), 'Sedna': (170, 95, 70),
+         'Arrokoth': (140, 90, 70)}
 for name, rgb in PLAIN.items():
     Image.new('RGB', (256, 128), rgb).save(os.path.join(res, name + '.jpg'), quality=90)
     print(name, 'done')

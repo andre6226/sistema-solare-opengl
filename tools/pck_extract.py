@@ -11,7 +11,10 @@ BODIES = [('Sun', 10), ('Mercury', 199), ('Venus', 299), ('Earth', 399), ('Mars'
           ('Rhea', 605), ('Titan', 606), ('Iapetus', 608), ('Uranus', 799), ('Miranda', 705),
           ('Ariel', 701), ('Umbriel', 702), ('Titania', 703), ('Oberon', 704), ('Neptune', 899),
           ('Triton', 801), ('Proteus', 808), ('Pluto', 999), ('Charon', 901), ('Ceres', 2000001), ('Pallas', 2000002),
-          ('Vesta', 2000004), ('Eros', 2000433), ('Ida', 2431010), ('Gaspra', 9511010)]
+          ('Vesta', 2000004), ('Eros', 2000433), ('Ida', 2431010), ('Gaspra', 9511010),
+          ('Metis', 516), ('Adrastea', 515), ('Amalthea', 505), ('Thebe', 514), ('Pan', 618), ('Atlas', 615),
+          ('Prometheus', 616), ('Pandora', 617), ('Epimetheus', 611), ('Janus', 610), ('Puck', 715),
+          ('Despina', 805), ('Galatea', 806), ('Larissa', 807), ('Churyumov-Gerasimenko', 1000012)]
 
 def parse(path):
     kv = {}

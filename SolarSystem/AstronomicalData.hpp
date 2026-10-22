@@ -496,6 +496,68 @@ namespace Astro {
         {17.834, 0.0, 0.96714, 0.0, 162.26, 0.0, 236.2, 477.97, 169.75, 0.0, 58.42, 0.0, false}
     };
 
+    // Comet 2P/Encke: the shortest period, 3.3 years; perihelion 0.34 AU.
+    inline constexpr BodyData Encke = {
+        "Encke", 2.4, 331359283.6, 1204.9, 0.458, 0.0,
+        {2.215, 0.0, 0.848, 0.0, 11.35, 0.0, 0.0, 10912.94, 0.0, 0.0, 0.0, 0.0, false}
+    };
+
+    // Comet 9P/Tempel 1: nucleus 7.6 x 4.9 km, struck by Deep Impact on 2005-07-04.
+    inline constexpr BodyData Tempel1 = {
+        "Tempel 1", 3.0, 470485303.4, 2037.0, 1.7, 0.0,
+        {3.145, 0.0, 0.51, 0.0, 10.5, 0.0, 0.0, 6455.08, 0.0, 0.0, 0.0, 0.0, false}
+    };
+
+    // Comet 67P/Churyumov-Gerasimenko: 4.3 x 2.6 x 2.1 km, Rosetta 2014-2016. A close pass
+    // by Jupiter in 1959 moved its perihelion in from 2.7 to 1.3 AU.
+    inline constexpr BodyData ChuryumovGerasimenko = {
+        "Churyumov-Gerasimenko", 2.0, 517608632.6, 2353.0, 0.517, 0.0,
+        {3.46, 0.0, 0.64, 0.0, 7.04, 0.0, 0.0, 5588.19, 0.0, 0.0, 0.0, 0.0, false}
+    };
+
+    // Comet 103P/Hartley 2: 2.2 km long, EPOXI flyby 2010-11-04.
+    inline constexpr BodyData Hartley2 = {
+        "Hartley 2", 0.58, 519104611.3, 2360.0, 0.75, 0.0,
+        {3.47, 0.0, 0.69, 0.0, 13.6, 0.0, 0.0, 5571.61, 0.0, 0.0, 0.0, 0.0, false}
+    };
+
+    // Comet C/1995 O1 Hale-Bopp: nucleus ~60 km, perihelion 1997-04-01; Jupiter shortened its
+    // ~4,200-year orbit to ~2,500 in 1996.
+    inline constexpr BodyData HaleBopp = {
+        "Hale-Bopp", 30.0, 27825203950.2, 925000.0, 0.475, 0.0,
+        {186.0, 0.0, 0.995, 0.0, 89.4, 0.0, 0.0, 14.22, 0.0, 0.0, 0.0, 0.0, false}
+    };
+
+    // Kuiper belt (JPL small-body ephemerides).
+    inline constexpr BodyData Quaoar = {
+        "Quaoar", 555.0, 6535930970.9, 105500.0, 0.7367, 0.0,
+        {43.69, 0.0, 0.04, 0.0, 7.99, 0.0, 0.0, 124.64, 0.0, 0.0, 0.0, 0.0, false}
+    };
+
+    // Orcus: in 2:3 resonance with Neptune like Pluto, half an orbit out of step.
+    inline constexpr BodyData Orcus = {
+        "Orcus", 455.0, 5859748595.3, 89500.0, 9.54, 0.0,
+        {39.17, 0.0, 0.227, 0.0, 20.6, 0.0, 0.0, 146.92, 0.0, 0.0, 0.0, 0.0, false}
+    };
+
+    // Gonggong (2007 OR10): scattered disc.
+    inline constexpr BodyData Gonggong = {
+        "Gonggong", 615.0, 10097856272.2, 202400.0, 0.933, 0.0,
+        {67.5, 0.0, 0.5, 0.0, 30.6, 0.0, 0.0, 64.97, 0.0, 0.0, 0.0, 0.0, false}
+    };
+
+    // Sedna: perihelion 76 AU in 2076, aphelion ~940 AU.
+    inline constexpr BodyData Sedna = {
+        "Sedna", 500.0, 75696522574.2, 4160000.0, 0.428, 0.0,
+        {506.0, 0.0, 0.85, 0.0, 11.93, 0.0, 0.0, 3.16, 0.0, 0.0, 0.0, 0.0, false}
+    };
+
+    // Arrokoth: two lobes 36 km end to end, New Horizons flyby 2019-01-01.
+    inline constexpr BodyData Arrokoth = {
+        "Arrokoth", 9.0, 6672065033.2, 108900.0, 0.663, 0.0,
+        {44.6, 0.0, 0.04, 0.0, 2.45, 0.0, 0.0, 120.74, 0.0, 0.0, 0.0, 0.0, false}
+    };
+
     // =========================================================================
     // 20 MOONS (isDistanceKm = true, a in km, LDot in deg/century)
     // =========================================================================
@@ -627,6 +689,81 @@ namespace Astro {
     inline constexpr BodyData Charon = {
         "Charon", 606.0, 19591.0, 6.39, 6.39, 0.0,
         {19591.0, 0.0, 0.0002, 0.0, 0.000, 0.0, 0.0, 2058400.0, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    // Small inner moons from the JPL satellite ephemerides: mean radii, synchronous.
+    // Jupiter's feed its faint rings; Pan and Atlas sweep the Encke gap and the A ring's
+    // edge, Prometheus and Pandora shepherd the F ring, Janus and Epimetheus swap orbits
+    // every four years; Puck is Uranus's largest inner moon; Despina, Galatea and Larissa
+    // orbit among Neptune's rings.
+    inline constexpr BodyData Metis = {
+        "Metis", 21.5, 127690.0, 0.294779, 0.294779, 0.0,
+        {127690.0, 0.0, 0.0002, 0.0, 0.06, 0.0, 0.0, 44606298.3, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Adrastea = {
+        "Adrastea", 8.2, 128690.0, 0.29826, 0.29826, 0.0,
+        {128690.0, 0.0, 0.0015, 0.0, 0.03, 0.0, 0.0, 44085697.0, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Amalthea = {
+        "Amalthea", 83.5, 181366.0, 0.498179, 0.498179, 0.0,
+        {181366.0, 0.0, 0.0032, 0.0, 0.374, 0.0, 0.0, 26394127.4, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Thebe = {
+        "Thebe", 49.3, 221889.0, 0.6745, 0.6745, 0.0,
+        {221889.0, 0.0, 0.0175, 0.0, 1.076, 0.0, 0.0, 19494440.3, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Pan = {
+        "Pan", 14.1, 133584.0, 0.575, 0.575, 0.0,
+        {133584.0, 0.0, 1.44e-05, 0.0, 0.0001, 0.0, 0.0, 22867826.1, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Atlas = {
+        "Atlas", 15.1, 137670.0, 0.6019, 0.6019, 0.0,
+        {137670.0, 0.0, 0.0012, 0.0, 0.003, 0.0, 0.0, 21845821.6, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Prometheus = {
+        "Prometheus", 43.1, 139380.0, 0.612986, 0.612986, 0.0,
+        {139380.0, 0.0, 0.0022, 0.0, 0.008, 0.0, 0.0, 21450734.6, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Pandora = {
+        "Pandora", 40.7, 141720.0, 0.628804, 0.628804, 0.0,
+        {141720.0, 0.0, 0.0042, 0.0, 0.05, 0.0, 0.0, 20911126.5, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Epimetheus = {
+        "Epimetheus", 58.1, 151422.0, 0.694333, 0.694333, 0.0,
+        {151422.0, 0.0, 0.0098, 0.0, 0.335, 0.0, 0.0, 18937599.1, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Janus = {
+        "Janus", 89.5, 151472.0, 0.69466, 0.69466, 0.0,
+        {151472.0, 0.0, 0.0068, 0.0, 0.165, 0.0, 0.0, 18928684.5, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Puck = {
+        "Puck", 81.0, 86004.0, 0.761833, 0.761833, 0.0,
+        {86004.0, 0.0, 0.00012, 0.0, 0.32, 0.0, 0.0, 17259688.1, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Despina = {
+        "Despina", 75.0, 52526.0, 0.334656, 0.334656, 0.0,
+        {52526.0, 0.0, 0.00014, 0.0, 0.07, 0.0, 0.0, 39291092.9, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Galatea = {
+        "Galatea", 88.0, 61953.0, 0.428745, 0.428745, 0.0,
+        {61953.0, 0.0, 0.00022, 0.0, 0.05, 0.0, 0.0, 30668579.2, 0.0, 0.0, 0.0, 0.0, true}
+    };
+
+    inline constexpr BodyData Larissa = {
+        "Larissa", 97.0, 73548.0, 0.554654, 0.554654, 0.0,
+        {73548.0, 0.0, 0.00139, 0.0, 0.205, 0.0, 0.0, 23706671.2, 0.0, 0.0, 0.0, 0.0, true}
     };
 
     // Distance beyond which HUD formats orbit radius in AU rather than km.

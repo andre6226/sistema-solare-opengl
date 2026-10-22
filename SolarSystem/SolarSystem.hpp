@@ -46,7 +46,7 @@ private:
 
     OrbitRenderer orbitRenderer;
     AsteroidBelt belt{"resources/asteroid_belt.bin"};
-    CelestialBody* halley = nullptr;
+    std::vector<CelestialBody*> comets;
 
     Ephemeris ephemeris{"resources/de440_1900_2200.bin"};
 
@@ -60,12 +60,19 @@ private:
         std::shared_ptr<MoonTable> moonTable;           // its JPL correction, or a small body's barycentric JPL position
     };
     std::vector<BodyLink> links;
-    CelestialBody* saturnRings = nullptr;
 
-    // Outer edge of the ring texture, km: it runs from 66,000 km (inside the D ring)
-    // to the F ring, measured on the Cassini division and the Encke gap; the ring's
-    // setRingProfile keeps the quad empty inside that.
-    static constexpr float ringOuterRadiusKm = 140920.0f;
+    // A ring texture laid from innerKm to outerKm about the planet; dust (forward
+    // scattering) inside dustBelowKm.
+    void addRings(CelestialBody* planet, const std::string& name, const std::string& texture,
+                  float innerKm, float outerKm, float dustBelowKm) {
+        auto rings = std::make_unique<CelestialBody>(name, loadTexture(texture), &ringGeometry,
+                                                     0.0f, 0.0f, 0.0f, 0.0f, outerKm);
+        rings->setType(BodyType::Ring);
+        rings->setRingProfile(innerKm / outerKm, dustBelowKm / outerKm);
+        rings->setNavigable(false);
+        planet->addSatellite(rings.get());
+        bodies.push_back(std::move(rings));
+    }
 
     void recenterOnTarget() {
         if (sun && currentTarget) {
@@ -286,7 +293,7 @@ public:
 
         // True-scale solar corona around the Sun's 3D photosphere.
         drawSunGlow(locs, cameraPosition);
-        drawCometTail(locs, cameraPosition);
+        for (const CelestialBody* comet : comets) drawCometTail(locs, cameraPosition, comet);
 
         if (transparentBodies.empty()) return;
 
@@ -441,13 +448,14 @@ private:
         glDepthMask(GL_TRUE);
     }
 
-    // Halley's coma and tail: a quad from the nucleus away from the Sun, turned to face
+    // A comet's coma and tails: quads from the nucleus away from the Sun, turned to face
     // the camera. Sizes follow the 1986 apparition: the gas starts to stream near 3 AU,
     // the tail reaches ~10 million km at 1 AU and grows as the inverse square of the
-    // distance. shortcut: straight and anti-solar, no dust curvature, no ion/dust split.
-    void drawCometTail(const UniformLocations& locs, const glm::vec3& cameraPosition) {
-        if (!halley || !sun) return;
-        const glm::vec3 head = halley->getWorldPosition();
+    // distance. shortcut: every comet gets Halley's activity and sizes; Hale-Bopp's
+    // were ~10 times larger and began at 7 AU, scale by nucleus if that matters.
+    void drawCometTail(const UniformLocations& locs, const glm::vec3& cameraPosition, const CelestialBody* comet) {
+        if (!sun) return;
+        const glm::vec3 head = comet->getWorldPosition();
         const glm::vec3 fromSun = head - sun->getWorldPosition();
         const float rAu = glm::length(fromSun) / 1.495978707e8f;
         const float activity = std::clamp((3.0f - rAu) / 1.5f, 0.0f, 1.0f);
@@ -459,7 +467,7 @@ private:
         const float halfLength = 0.5f * (length + coma);
         const float halfWidth = 0.16f * length;
         // Where the comet came from, across the anti-Sun axis: the dust lags that way.
-        const Astro::KeplerianBasis& orbit = halley->getOrbitBasis();
+        const Astro::KeplerianBasis& orbit = comet->getOrbitBasis();
         const glm::vec3 velocity(glm::normalize(-std::sin(orbit.E_rad) * orbit.P_world
                                                 + std::sqrt(1.0 - orbit.e * orbit.e) * std::cos(orbit.E_rad) * orbit.Q_world));
         const glm::vec3 behind = -velocity - axis * glm::dot(-velocity, axis);
@@ -507,7 +515,10 @@ private:
             if (d == &data) link.deItem = item;
         }
         for (const Astro::BodyData* d : {&Astro::Ceres, &Astro::Pallas, &Astro::Vesta, &Astro::Ida, &Astro::Eros,
-                                         &Astro::Gaspra, &Astro::Haumea, &Astro::Eris, &Astro::Makemake, &Astro::Halley}) {
+                                         &Astro::Gaspra, &Astro::Haumea, &Astro::Eris, &Astro::Makemake, &Astro::Halley,
+                                         &Astro::Encke, &Astro::Tempel1, &Astro::ChuryumovGerasimenko, &Astro::Hartley2,
+                                         &Astro::HaleBopp, &Astro::Quaoar, &Astro::Orcus, &Astro::Gonggong, &Astro::Sedna,
+                                         &Astro::Arrokoth}) {
             if (d == &data) link.moonTable = std::make_shared<MoonTable>(std::string("resources/bodies/") + data.name + ".bin");
         }
         for (const Astro::IauBody& iau : Astro::iauBodies()) {
@@ -556,7 +567,7 @@ private:
                 link.body->setEphemerisOffset(toWorld * Orbits::moonPosition(*link.moon, *link.moonTable, jdTdb),
                     Orbits::rotated(Orbits::moonLine(*link.moon, *link.moonTable, jdTdb), toWorld));
             } else if (link.moonTable != nullptr) {
-                // Asteroids, dwarf planets, Halley: barycentric JPL table minus the DE440 Sun.
+                // Asteroids, dwarf planets, comets: barycentric JPL table minus the DE440 Sun.
                 glm::dvec3 fromSun;
                 const Astro::KeplerianBasis b = Orbits::smallBodyLine(ephemeris, *link.moonTable, jdTdb, &fromSun);
                 link.body->setEphemerisOffset(toWorld * fromSun, Orbits::rotated(b, toWorld));
@@ -713,13 +724,23 @@ private:
         uranus->setLimbSoftness(0.016f);
         neptune->setLimbSoftness(0.016f);
 
-        // --- GALILEAN MOONS OF JUPITER ---
+        // --- MOONS OF JUPITER ---
+        createBody(Astro::Metis, jupiter);
+        createBody(Astro::Adrastea, jupiter);
+        createBody(Astro::Amalthea, jupiter);
+        createBody(Astro::Thebe, jupiter);
         createBody(Astro::Io, jupiter);
         createBody(Astro::Europa, jupiter);
         createBody(Astro::Ganymede, jupiter);
         createBody(Astro::Callisto, jupiter);
 
         // --- MOONS OF SATURN ---
+        createBody(Astro::Pan, saturn);
+        createBody(Astro::Atlas, saturn);
+        createBody(Astro::Prometheus, saturn);
+        createBody(Astro::Pandora, saturn);
+        createBody(Astro::Epimetheus, saturn);
+        createBody(Astro::Janus, saturn);
         createBody(Astro::Mimas, saturn);
         createBody(Astro::Enceladus, saturn);
         createBody(Astro::Tethys, saturn);
@@ -730,25 +751,24 @@ private:
         createBody(Astro::Hyperion, saturn)->setRadii(glm::vec3(180.1f, 102.7f, 133.0f));   // pck00011, mesh x, z, y
 
         // --- SATURN'S RINGS ---
-        auto rings = std::make_unique<CelestialBody>(
-            "Saturn's Rings", loadTexture("resources/SaturnRings.png"), &ringGeometry,
-            0.0f, 0.0f, 0.0f, 0.0f, ringOuterRadiusKm);
-        rings->setType(BodyType::Ring);
-        // The texture from 66,000 km (the D ring, dust, to the C ring at 74,490 km): tools/ring_opacity.py.
-        rings->setRingProfile(66000.0f / ringOuterRadiusKm, 74490.0f / ringOuterRadiusKm);
-        rings->setNavigable(false);
-        saturnRings = rings.get();
-        saturn->addSatellite(rings.get());
-        bodies.push_back(std::move(rings));
+        // D ring (dust) to F ring, 66,000-140,920 km, measured on the Cassini division
+        // and the Encke gap; dust inside the C ring at 74,490 km: tools/ring_opacity.py.
+        addRings(saturn, "Saturn's Rings", "resources/SaturnRings.png", 66000.0f, 140920.0f, 74490.0f);
+        // Zeta (dust) to epsilon, 37,850-51,250 km: tools/uranus_rings.py.
+        addRings(uranus, "Uranus's Rings", "resources/UranusRings.png", 37850.0f, 51250.0f, 41350.0f);
 
         // --- MOONS OF URANUS ---
+        createBody(Astro::Puck, uranus);
         createBody(Astro::Miranda, uranus);
         createBody(Astro::Ariel, uranus);
         createBody(Astro::Umbriel, uranus);
         createBody(Astro::Titania, uranus);
         createBody(Astro::Oberon, uranus);
 
-        // --- MOON OF NEPTUNE ---
+        // --- MOONS OF NEPTUNE ---
+        createBody(Astro::Despina, neptune);
+        createBody(Astro::Galatea, neptune);
+        createBody(Astro::Larissa, neptune);
         createBody(Astro::Triton, neptune);
         createBody(Astro::Proteus, neptune);
         createBody(Astro::Nereid, neptune);
@@ -761,9 +781,22 @@ private:
         createBody(Astro::Makemake, sun);
         createBody(Astro::Eris, sun);
 
-        // Nucleus 7.65 x 3.6 x 3.6 km, long axis along mesh x.
-        halley = createBody(Astro::Halley, sun);
-        halley->setRadii(glm::vec3(7.65f, 3.6f, 3.6f));
+        createBody(Astro::Quaoar, sun);
+        createBody(Astro::Orcus, sun);
+        createBody(Astro::Gonggong, sun);
+        createBody(Astro::Sedna, sun);
+        createBody(Astro::Arrokoth, sun)->setRadii(glm::vec3(18.0f, 5.0f, 10.0f));   // 36 x 20 x 10 km, mesh x, z, y
+
+        // --- COMETS --- nuclei as ellipsoids, long axis along mesh x.
+        comets.push_back(createBody(Astro::Halley, sun));
+        comets.back()->setRadii(glm::vec3(7.65f, 3.6f, 3.6f));
+        comets.push_back(createBody(Astro::Encke, sun));
+        comets.push_back(createBody(Astro::Tempel1, sun));
+        comets.back()->setRadii(glm::vec3(3.8f, 2.45f, 2.45f));
+        comets.push_back(createBody(Astro::ChuryumovGerasimenko, sun));   // radii from pck00011
+        comets.push_back(createBody(Astro::Hartley2, sun));
+        comets.back()->setRadii(glm::vec3(1.1f, 0.35f, 0.35f));
+        comets.push_back(createBody(Astro::HaleBopp, sun));
     }
 
     void moveToSibling(int direction) {
