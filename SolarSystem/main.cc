@@ -41,7 +41,7 @@ static constexpr int screenshotFrames = 3;
 
 static int usage(const char* argv0) {
     std::cerr << "usage: " << argv0 << " [--date YYYY-MM-DDTHH:MM:SS] [--focus BODY] [--distance KM]\n"
-              << "       [--azimuth DEG] [--elevation DEG] [--size WxH] [--orbits on|off]\n"
+              << "       [--azimuth DEG] [--elevation DEG] [--size WxH] [--orbits on|all|off]\n"
               << "       [--screenshot OUT.png]\n"
               << "With --focus, the camera looks from the Sun's side of the body; azimuth and\n"
               << "elevation turn it from there. --screenshot freezes time, saves, and exits.\n";
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
     std::string dateArg, focusArg, screenshotPath;
     float distanceKm = 0.0f, azimuthOffset = 0.0f, elevationOffset = 0.0f;
     sf::Vector2u windowSize{800, 600};
-    bool orbitLines = true;
+    OrbitRenderer::Mode orbitMode = OrbitRenderer::Planets;
     for (int i = 1; i < argc; ++i) {
         const std::string opt = argv[i];
         if (i + 1 >= argc) return usage(argv[0]);
@@ -64,7 +64,9 @@ int main(int argc, char** argv) {
             else if (opt == "--distance")   distanceKm = std::stof(value);
             else if (opt == "--azimuth")    azimuthOffset = std::stof(value);
             else if (opt == "--elevation")  elevationOffset = std::stof(value);
-            else if (opt == "--orbits" && (std::string(value) == "on" || std::string(value) == "off")) orbitLines = std::string(value) == "on";
+            else if (opt == "--orbits" && std::string(value) == "on")  orbitMode = OrbitRenderer::Planets;
+            else if (opt == "--orbits" && std::string(value) == "all") orbitMode = OrbitRenderer::All;
+            else if (opt == "--orbits" && std::string(value) == "off") orbitMode = OrbitRenderer::None;
             else if (opt == "--size") {
                 unsigned w = 0, h = 0;
                 if (std::sscanf(value, "%ux%u", &w, &h) != 2 || w < 64 || h < 64 || w > 8192 || h > 8192) return usage(argv[0]);
@@ -82,7 +84,7 @@ int main(int argc, char** argv) {
 
         Shader shader("SolarSystem/base.vert", "SolarSystem/base.frag");
         SolarSystem solarSystem;
-        if (!orbitLines) solarSystem.toggleOrbitLines();
+        solarSystem.setOrbitMode(orbitMode);
         std::cout << "[time] Initialized UTC: " << Astro::formatUtcDateTime(solarSystem.getSimUnixSeconds())
                   << " (JD " << std::fixed << std::setprecision(2) << solarSystem.getJulianDate()
                   << ", T = " << std::setprecision(6) << solarSystem.getJulianCenturies() << " cy)" << std::endl;
@@ -274,7 +276,7 @@ int main(int argc, char** argv) {
 
             solarSystem.draw(locs, cameraPosition);
             solarSystem.drawBelt(viewMatrix, projectionMatrix, cameraPosition);
-            solarSystem.drawOrbits(viewMatrix, projectionMatrix);
+            solarSystem.drawOrbits(viewMatrix, projectionMatrix, cameraPosition);
 
             HudFrame hudFrame;
             hudFrame.targetName     = currentTarget;

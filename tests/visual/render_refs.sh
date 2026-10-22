@@ -27,7 +27,7 @@ SCENES=(
     "earth_night|2026-10-21T21:00:00|Earth|--azimuth 160 --elevation 25"   # city lights of Europe and Africa, blue limb sunwards
     "mutual_io_europa|2021-04-25T11:24:00|Europa|--azimuth 5 --distance 6000"   # Io's shadow on Europa, the most central of 2021
     "halley_1986|1986-02-09T12:00:00|Halley|--distance 4.0e7 --azimuth 90 --elevation 20"   # perihelion: coma and tail
-    "asteroid_belt|2026-10-21T00:00:00|Sun|--distance 1.3e9 --elevation 89"   # 58,000 asteroids from above
+    "asteroid_belt|2026-10-21T00:00:00|Sun|--distance 1.3e9 --elevation 89 --orbits all"   # 58,000 asteroids from above
 )
 
 cd "$ROOT_DIR/build"   # the binary loads resources/ and its shaders relative to here

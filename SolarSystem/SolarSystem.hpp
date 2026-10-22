@@ -320,15 +320,16 @@ public:
         // A picture of the belt from outside it: seen from within, 58,000 dots would fill
         // a sky where no asteroid is visible to the eye. Fades in from 3.3 to 6.7 AU.
         const float fromSun = glm::length(cameraPosition - getSunPosition());
-        const float alpha = std::clamp((fromSun - 5.0e8f) / 5.0e8f, 0.0f, 1.0f);
+        const float alpha = orbitRenderer.showsMinorBodies() ? std::clamp((fromSun - 5.0e8f) / 5.0e8f, 0.0f, 1.0f) : 0.0f;
         if (alpha > 0.0f) belt.draw(view, projection, getSunPosition(), Astro::unixToJulianDateTdb(simTimeSeconds), eclipticToWorld, alpha);
     }
 
     void toggleOrbitLines() { orbitRenderer.toggle(); }
+    void setOrbitMode(OrbitRenderer::Mode mode) { orbitRenderer.setMode(mode); }
     bool areOrbitLinesVisible() const { return orbitRenderer.isVisible(); }
 
-    void drawOrbits(const glm::mat4& view, const glm::mat4& projection) {
-        orbitRenderer.render(bodies, sun, currentTarget, view, projection);
+    void drawOrbits(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& cameraPosition) {
+        orbitRenderer.render(bodies, sun, currentTarget, view, projection, glm::length(cameraPosition));
     }
 
     // Projects distant bodies onto 2D screen space so the HUD can draw a
@@ -408,6 +409,8 @@ public:
             m.prominence = prominence * (0.25f + 0.75f * phaseFactor);
             m.dotAlpha   = (0.25f + 0.75f * prominence) * phaseFactor * pointFade;
             m.labelAlpha = (0.35f + 0.55f * prominence) * (0.25f + 0.75f * phaseFactor);
+            // Minor bodies keep their clickable dot; their names only with O's second press.
+            if (!orbitRenderer.showsMinorBodies() && Orbits::isMinorBody(b->getName(), parent == sun)) m.labelAlpha = 0.0f;
             // Offset label outside the resolved 3D disc when pointFade == 0.
             const float screenDiscRadius = angularRadius * static_cast<float>(height) * 1.2f;
             const float dotRadius = ((b == sun) ? 7.0f : (2.0f + 3.8f * prominence)) * (0.4f + 0.6f * phaseFactor);

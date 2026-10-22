@@ -90,13 +90,17 @@ and the shaders next to the binary on every build, changed files only.
 * **Time:** `T` opens the date picker (1900–2200, UTC); `SHIFT`/`CTRL` speed
   time up or down by 1.5× a press, up to 10⁸× (3 years a second), `SPACE` back
   to real time. Past an hour a second the HUD also shows the rate, e.g. 2.4 d/s.
-* **Orbits:** `O` toggles the orbit lines. The focused body's own orbit is hidden.
+* **Orbits:** `O` cycles the orbit lines: planets and moons, then also the minor
+  bodies (asteroids, dwarf planets, comets, Kuiper belt, with their names and the
+  main belt), then none. Minor bodies keep their clickable dots and `F` finds them.
+  The focused body's own orbit is hidden, and an orbit much wider than the camera's
+  distance fades out, since up close it would only cross the screen as a straight line.
 * **Command line** (run from `build/`): `--date 2026-08-12T17:46:00` (UTC),
   `--focus Moon` (camera on the Sun's side of the body), `--azimuth`/`--elevation`
   (degrees, turning the camera from there), `--distance` (km), and
   `--screenshot out.png`, which freezes time, saves the frame and exits;
-  `--size 2560x1372` sets the window and so the picture's size, `--orbits off`
-  hides the orbit lines:
+  `--size 2560x1372` sets the window and so the picture's size, `--orbits all`
+  or `off` shows the minor bodies' orbits too or no orbit lines:
 
   ```
   cd build && ./SolarSystem.bin --date 2025-09-07T18:11:00 --focus Moon --screenshot moon.png

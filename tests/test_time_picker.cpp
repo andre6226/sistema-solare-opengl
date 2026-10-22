@@ -332,6 +332,15 @@ int main() {
             assert(SolarSystem::bestNameMatch(names, "") == -1 && SolarSystem::bestNameMatch(names, "xyz") == -1);
         }
 
+        // Orbit lines thin out by scale: near Earth its own orbit and Venus's are gone, the
+        // Moon's stays; minor bodies only on request, Pluto and the moons always.
+        {
+            assert(Orbits::orbitFade(60000.0, Astro::AU_KM) == 0.0f && Orbits::orbitFade(60000.0, 384400.0) == 1.0f);
+            assert(Orbits::orbitFade(40.0 * Astro::AU_KM, 30.0 * Astro::AU_KM) == 1.0f);
+            assert(Orbits::isMinorBody("Ceres", true) && Orbits::isMinorBody("Hale-Bopp", true));
+            assert(!Orbits::isMinorBody("Pluto", true) && !Orbits::isMinorBody("Neptune", true) && !Orbits::isMinorBody("Janus", false));
+        }
+
         // Mars 1.03 days
         const double T_mars = T0 + 1.03 / Astro::DAYS_PER_JULIAN_CENTURY;
         const double marsRot0 = (D0 / Astro::Mars.rotationPeriodDays) * glm::two_pi<double>();

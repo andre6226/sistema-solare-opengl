@@ -1,10 +1,29 @@
 #pragma once
 #include "AstronomicalData.hpp"
 #include "Ephemeris.hpp"
+#include <algorithm>
+#include <iterator>
+#include <string>
 
 // The orbits the app draws and the HUD reports, from JPL positions. No OpenGL here, so
 // tests/test_time_picker.cpp checks these very functions. ICRF axes, km, TDB Julian days.
 namespace Orbits {
+
+    // An orbit line's opacity, 0-1: an orbit much wider than the camera's distance from
+    // the body in view crosses the screen as a straight line, so it fades out between
+    // 30 and 300 times that distance (Earth's orbit from 60,000 km, the Moon's stays).
+    inline float orbitFade(double viewKm, double orbitKm) {
+        return static_cast<float>(glm::smoothstep(0.003, 0.03, viewKm / orbitKm));
+    }
+
+    // Asteroids, dwarf planets, comets, the Kuiper belt: O shows their orbits, labels and
+    // the main belt only on its second press. Pluto stays with the planets.
+    inline bool isMinorBody(const std::string& name, bool orbitsTheSun) {
+        static const char* const major[] = {"Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn",
+                                            "Uranus", "Neptune", "Pluto"};
+        return orbitsTheSun && std::find_if(std::begin(major), std::end(major),
+                                            [&](const char* m) { return name == m; }) == std::end(major);
+    }
 
     // A fitted moon's full JPL position: mean orbit (tools/satellite_fit.py) + correction table.
     inline glm::dvec3 moonPosition(const Astro::SatelliteOrbit& s, const MoonTable& table, double jdTdb) {

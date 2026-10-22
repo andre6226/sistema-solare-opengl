@@ -10,6 +10,7 @@
 #include "Shader.hpp"
 #include "CelestialBody.hpp"
 #include "AstronomicalData.hpp"
+#include "Orbits.hpp"
 #include "Texture.hpp"
 
 class OrbitRenderer {
@@ -24,7 +25,7 @@ private:
     GLuint VBO = 0;
     std::unique_ptr<Shader> fileShader;
     GLuint fallbackProgram = 0;
-    bool visible = true;
+    int mode = 0;   // a Mode
 
     GLint locView = -1;
     GLint locProjection = -1;
@@ -90,6 +91,7 @@ private:
     }
 
 public:
+    enum Mode { Planets, All, None };
     OrbitRenderer() {
         try {
             fileShader = std::make_unique<Shader>("SolarSystem/orbit.vert", "SolarSystem/orbit.frag");
@@ -126,12 +128,15 @@ public:
     OrbitRenderer(OrbitRenderer&&)                 = delete;
     OrbitRenderer& operator=(OrbitRenderer&&)      = delete;
 
-    void toggle() { visible = !visible; }
-    bool isVisible() const { return visible; }
+    // O: planets and moons, then the minor bodies too, then nothing.
+    void toggle() { mode = (mode + 1) % 3; }
+    void setMode(Mode m) { mode = m; }
+    bool isVisible() const { return mode != None; }
+    bool showsMinorBodies() const { return mode == All; }
 
     static bool shouldRenderOrbit(const CelestialBody* body,
                                   const CelestialBody* currentTarget,
-                                  const CelestialBody* sun) {
+                                  const CelestialBody* sun, bool minorBodies) {
         // The focused body's own orbit would run straight through it up close.
         if (!body || !body->isNavigable() || body == sun || body == currentTarget) return false;
         const CelestialBody* parent = body->getParent();
@@ -139,9 +144,9 @@ public:
         const Astro::BodyData* data = body->getData();
         if (!data || data->orbit.a0 <= 0.0) return false;
 
-        // Rule 1: All bodies directly orbiting the Sun are always visible (planets, asteroids, dwarf planets)
+        // Rule 1: bodies directly orbiting the Sun: the planets always, the minor bodies on request
         if (parent == sun) {
-            return true;
+            return minorBodies || !Orbits::isMinorBody(body->getName(), true);
         }
 
         // Rule 2: If target is the Sun or null, all moon orbits are hidden
@@ -165,8 +170,8 @@ public:
 
     void update(const std::vector<std::unique_ptr<CelestialBody>>& bodies,
                 const CelestialBody* sun,
-                const CelestialBody* currentTarget) {
-        if (!visible) return;
+                const CelestialBody* currentTarget, double viewKm) {
+        if (!isVisible()) return;
 
         vertexBuffer.clear();
         batches.clear();
@@ -176,10 +181,12 @@ public:
 
         for (const auto& bodyPtr : bodies) {
             const CelestialBody* body = bodyPtr.get();
-            if (!shouldRenderOrbit(body, currentTarget, sun)) continue;
+            if (!shouldRenderOrbit(body, currentTarget, sun, showsMinorBodies())) continue;
 
             const Astro::KeplerianBasis& basis = body->getOrbitBasis();
             if (basis.a_km <= 0.0) continue;
+            const float fade = Orbits::orbitFade(viewKm, basis.a_km);
+            if (fade <= 0.0f) continue;
 
             const CelestialBody* parent = body->getParent();
             const glm::dvec3 parentExact = parent ? parent->getExactPosition() : glm::dvec3(0.0);
@@ -197,7 +204,7 @@ public:
             if (body->getTexture() != nullptr) {
                 tint = body->getTexture()->tint;
             }
-            batches.push_back({startIdx, NUM_SEGMENTS, glm::vec4(tint, 0.22f)});
+            batches.push_back({startIdx, NUM_SEGMENTS, glm::vec4(tint, 0.22f * fade)});
         }
 
         if (!vertexBuffer.empty()) {
@@ -216,7 +223,7 @@ public:
     }
 
     void draw(const glm::mat4& view, const glm::mat4& projection) const {
-        if (!visible || batches.empty()) return;
+        if (!isVisible() || batches.empty()) return;
 
         useProgram();
         glUniformMatrix4fv(locView, 1, GL_FALSE, &view[0][0]);
@@ -241,8 +248,9 @@ public:
                 const CelestialBody* sun,
                 const CelestialBody* currentTarget,
                 const glm::mat4& view,
-                const glm::mat4& projection) {
-        update(bodies, sun, currentTarget);
+                const glm::mat4& projection,
+                double viewKm) {
+        update(bodies, sun, currentTarget, viewKm);
         draw(view, projection);
     }
 };
