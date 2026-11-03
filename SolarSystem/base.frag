@@ -69,6 +69,101 @@ const float RING_OUTER = 1.0;
 // observer, white point D65 (peach-white, #FFF1EA on screen).
 const vec3 SUN_COLOR = vec3(1.0, 0.879, 0.822);
 
+// <umbra-table>
+// tools/umbra_light.py: per km of tangent height 0-60 km, sunlight through Earth's
+// limb (linear sRGB, sunlight = 1) and its total refraction (rad). Generated, do not edit.
+const int UMBRA_ROWS = 61;
+const vec4 UMBRA_LIMB[UMBRA_ROWS] = vec4[](
+    vec4(0.0000e+00, 0.0000e+00, 0.0000e+00, 1.893084e-02),
+    vec4(0.0000e+00, 0.0000e+00, 0.0000e+00, 1.747702e-02),
+    vec4(0.0000e+00, 0.0000e+00, 0.0000e+00, 1.592543e-02),
+    vec4(1.3026e-04, 9.2729e-06, 0.0000e+00, 1.448782e-02),
+    vec4(1.3283e-03, 1.5935e-04, 0.0000e+00, 1.315838e-02),
+    vec4(4.9175e-03, 8.3621e-04, 0.0000e+00, 1.192897e-02),
+    vec4(1.1636e-02, 2.6068e-03, 0.0000e+00, 1.079634e-02),
+    vec4(2.1603e-02, 6.1438e-03, 0.0000e+00, 9.754559e-03),
+    vec4(3.4440e-02, 1.2173e-02, 0.0000e+00, 8.801272e-03),
+    vec4(4.9264e-02, 2.1356e-02, 1.2606e-03, 7.937532e-03),
+    vec4(6.4736e-02, 3.4121e-02, 5.0428e-03, 7.175842e-03),
+    vec4(7.9312e-02, 5.0595e-02, 1.2977e-02, 6.761356e-03),
+    vec4(9.1322e-02, 7.0230e-02, 2.7355e-02, 5.761370e-03),
+    vec4(9.8829e-02, 9.0362e-02, 4.8919e-02, 4.899375e-03),
+    vec4(1.0124e-01, 1.0848e-01, 7.7001e-02, 4.169351e-03),
+    vec4(1.0082e-01, 1.2459e-01, 1.1088e-01, 3.550367e-03),
+    vec4(1.0054e-01, 1.4061e-01, 1.5109e-01, 3.025001e-03),
+    vec4(1.0140e-01, 1.5699e-01, 1.9678e-01, 2.578808e-03),
+    vec4(1.0434e-01, 1.7444e-01, 2.4685e-01, 2.199845e-03),
+    vec4(1.1034e-01, 1.9385e-01, 3.0013e-01, 1.878461e-03),
+    vec4(1.2037e-01, 2.1629e-01, 3.5551e-01, 1.614441e-03),
+    vec4(1.3553e-01, 2.4280e-01, 4.1186e-01, 1.368860e-03),
+    vec4(1.5702e-01, 2.7428e-01, 4.6760e-01, 1.161254e-03),
+    vec4(1.8612e-01, 3.1154e-01, 5.2180e-01, 9.860604e-04),
+    vec4(2.2403e-01, 3.5509e-01, 5.7364e-01, 8.380573e-04),
+    vec4(2.7158e-01, 4.0493e-01, 6.2243e-01, 7.129122e-04),
+    vec4(3.2893e-01, 4.6045e-01, 6.6763e-01, 6.069799e-04),
+    vec4(3.9519e-01, 5.2034e-01, 7.0887e-01, 5.172551e-04),
+    vec4(4.6832e-01, 5.8263e-01, 7.4597e-01, 4.411978e-04),
+    vec4(5.4517e-01, 6.4495e-01, 7.7894e-01, 3.767044e-04),
+    vec4(6.2196e-01, 7.0482e-01, 8.0797e-01, 3.220408e-04),
+    vec4(6.9490e-01, 7.6002e-01, 8.3339e-01, 2.758478e-04),
+    vec4(7.6081e-01, 8.0893e-01, 8.5561e-01, 2.389576e-04),
+    vec4(8.1759e-01, 8.5062e-01, 8.7503e-01, 2.023698e-04),
+    vec4(8.6429e-01, 8.8481e-01, 8.9174e-01, 1.716050e-04),
+    vec4(9.0114e-01, 9.1195e-01, 9.0612e-01, 1.458045e-04),
+    vec4(9.2912e-01, 9.3290e-01, 9.1852e-01, 1.241186e-04),
+    vec4(9.4967e-01, 9.4870e-01, 9.2922e-01, 1.058549e-04),
+    vec4(9.6433e-01, 9.6042e-01, 9.3846e-01, 9.044132e-05),
+    vec4(9.7455e-01, 9.6902e-01, 9.4645e-01, 7.740734e-05),
+    vec4(9.8155e-01, 9.7532e-01, 9.5335e-01, 6.636042e-05),
+    vec4(9.8630e-01, 9.7997e-01, 9.5932e-01, 5.698268e-05),
+    vec4(9.8953e-01, 9.8344e-01, 9.6448e-01, 4.900210e-05),
+    vec4(9.9174e-01, 9.8608e-01, 9.6895e-01, 4.219683e-05),
+    vec4(9.9329e-01, 9.8815e-01, 9.7281e-01, 3.637681e-05),
+    vec4(9.9442e-01, 9.8980e-01, 9.7616e-01, 3.138095e-05),
+    vec4(9.9526e-01, 9.9114e-01, 9.7906e-01, 2.705584e-05),
+    vec4(9.9591e-01, 9.9226e-01, 9.8156e-01, 2.299052e-05),
+    vec4(9.9644e-01, 9.9319e-01, 9.8371e-01, 2.021887e-05),
+    vec4(9.9688e-01, 9.9400e-01, 9.8561e-01, 1.778590e-05),
+    vec4(9.9725e-01, 9.9471e-01, 9.8728e-01, 1.561435e-05),
+    vec4(9.9758e-01, 9.9533e-01, 9.8875e-01, 1.348581e-05),
+    vec4(9.9786e-01, 9.9586e-01, 9.9003e-01, 1.205276e-05),
+    vec4(9.9810e-01, 9.9634e-01, 9.9118e-01, 1.077163e-05),
+    vec4(9.9833e-01, 9.9677e-01, 9.9220e-01, 9.615177e-06),
+    vec4(9.9852e-01, 9.9715e-01, 9.9312e-01, 8.572442e-06),
+    vec4(9.9870e-01, 9.9749e-01, 9.9394e-01, 7.633263e-06),
+    vec4(9.9886e-01, 9.9779e-01, 9.9466e-01, 6.788357e-06),
+    vec4(9.9899e-01, 9.9806e-01, 9.9531e-01, 6.029111e-06),
+    vec4(9.9912e-01, 9.9830e-01, 9.9589e-01, 5.347661e-06),
+    vec4(9.9923e-01, 9.9851e-01, 9.9640e-01, 4.736833e-06)
+);
+// </umbra-table>
+
+// Contrast the eye keeps on the eclipsed Moon, a little more than a photo's 1,000:1 so
+// the umbra is not black.
+const float EYE_CONTRAST = 3.0e3;
+
+// Sunlight Earth's air bends into its shadow (RGB share of full sunlight), at a point
+// that sees Earth's centre rho rad from the Sun's, Earth d km away and radius radiusKm,
+// the Sun alpha rad in radius. Radiance is conserved along a ray, so the point gets the
+// solid angle of limb that, traced back and bent by the table's refraction, lands on the
+// Sun's disc: for each tangent height an arc of the limb ring, found in closed form.
+vec3 umbraRefracted(float rho, float d, float radiusKm, float alpha) {
+    vec3 e = vec3(0.0);
+    for (int h = 0; h < UMBRA_ROWS; ++h) {
+        float rh = radiusKm + float(h);
+        float b = UMBRA_LIMB[h].w - asin(min(rh / d, 1.0));
+        float arc;
+        if (rho * abs(b) < 1e-12) {
+            arc = (rho * rho + b * b <= alpha * alpha) ? 6.2831853 : 0.0;
+        } else {
+            float c = (alpha * alpha - rho * rho - b * b) / (2.0 * rho * abs(b));
+            arc = 6.2831853 - 2.0 * acos(clamp(c, -1.0, 1.0));
+        }
+        e += UMBRA_LIMB[h].rgb * (arc * rh / (d * d * 3.14159265 * alpha * alpha));
+    }
+    return e;
+}
+
 // Area shared by two discs of radii r1, r2 whose centres are d apart.
 float discOverlap(float r1, float r2, float d) {
     if (d >= r1 + r2) return 0.0;
@@ -219,20 +314,20 @@ void main() {
             hidden /= float(layers) * 3.14159265 * sunAngle * sunAngle;
             float casterAngle = asin(min(radius * (1.0 + 0.5 * soft) / casterDistance, 1.0));
             shadowFactor *= 1.0 - hidden;
-            if (casterHasAtmosphere > 0.5) {
-                // Sunlight refracted through Earth's limb: deep red at the axis, copper
-                // towards the umbra's edge. Far dimmer than sunlight, raised for the eye.
-                float edge = clamp(separation / max(casterAngle - sunAngle, 1e-6), 0.0, 1.0);
-                umbraLight += hidden * mix(vec3(0.07, 0.008, 0.002), vec3(0.17, 0.052, 0.015), edge * edge) * diff * sunlight;
-            }
+            if (casterHasAtmosphere > 0.5) umbraLight = umbraRefracted(separation, casterDistance, radius, sunAngle);
         }
     }
-    // On the Moon in Earth's shadow, map the lit fraction as the eye does, on a log
-    // scale with 1,000:1 of contrast: the sliver of a partial eclipse, lit by 0.04-3% of
-    // the Sun, then reads 5-50% bright instead of black, and the umbra's edge keeps the
-    // soft ramp photos show. Seen from space, Earth keeps the linear penumbra that
-    // photos of solar eclipses show.
-    if (casterHasAtmosphere > 0.5) shadowFactor = log(1.0 + 1000.0 * shadowFactor) / log(1.0 + 1000.0);
+    // On the Moon in Earth's shadow, map the light (direct + bent in) as the eye does, on
+    // a log scale of its luminance, keeping its colour: the sliver of a partial eclipse,
+    // lit by 0.04-3% of the Sun, reads 10-55% bright instead of black, the umbra's edge
+    // keeps the soft ramp photos show, and the umbra (1e-5 to 1e-3 of sunlight) is dark
+    // but not black. Seen from space, Earth keeps the linear penumbra of solar eclipse photos.
+    if (casterHasAtmosphere > 0.5) {
+        float lum = shadowFactor + dot(umbraLight, vec3(0.2126, 0.7152, 0.0722));
+        float scale = lum > 0.0 ? log(1.0 + EYE_CONTRAST * lum) / (log(1.0 + EYE_CONTRAST) * lum) : 0.0;
+        shadowFactor *= scale;
+        umbraLight *= scale * diff * sunlight;
+    }
 
     // The rings' shadow: where the ray towards the Sun crosses the ring plane, the
     // light left is what the ring texture lets through at that radius. The branch is

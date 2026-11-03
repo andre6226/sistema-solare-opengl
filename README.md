@@ -169,11 +169,20 @@ the umbra, the penumbra and the annular ring without special cases. Earth's
 shadow is 1/85 wider than the planet, for the opaque lower atmosphere (Danjon's
 rule, the one NASA's lunar eclipse catalogue uses): the umbral magnitude of
 2026-08-28 comes out 0.933 against NASA's 0.930. Inside it, the Moon gets the
-sunlight Earth's atmosphere bends in: deep red near the axis, copper towards the
-edge. That glow is a chosen colour, not a computed one. On the Moon the lit share
-is mapped on a log scale, as the eye sees it next to the umbra, with 1,000:1
-of contrast: the sliver of a partial eclipse, lit by 0.04–3% of the Sun, reads
-5–50% bright instead of black, and the umbra's edge stays a soft ramp, not a step.
+sunlight Earth's atmosphere bends in, computed, not chosen: `tools/umbra_light.py`
+takes each tangent height from 0 to 60 km through the US Standard Atmosphere 1976,
+finds how far the ray bends (65′ at the ground) and how much light gets through
+(Rayleigh scattering, ozone's Chappuis band, haze, a mean cloud cover), over the
+spectrum of a 5772 K Sun, and writes it as a table into `base.frag`. The shader then
+adds up, for each point of the Moon, the arc of Earth's limb that shows it the Sun.
+Out comes the dark centre (6·10⁻⁶ of sunlight at the Moon's mean distance), red
+light further out and the turquoise band ozone leaves at the umbra's edge. The
+light is then mapped on a log scale of its luminance, keeping its colour, with
+3,000:1 of contrast, a little more than a photo's so the umbra is dark but not
+black: the sliver of a partial eclipse, lit by 0.04–3% of the Sun, reads 10–55%
+bright, and the umbra's edge stays a soft ramp, not a step. Shortcuts: one mean
+cloud cover and no volcanic haze, so every eclipse comes out alike, where real ones
+range from bright copper to nearly black (Danjon L 0–4).
 
 A shadow's edge is as soft as physics makes it. The Sun's disc gives the penumbra:
 about 3,500 km wide where Earth's shadow meets the Moon, 5 km where Charon's meets
@@ -442,6 +451,7 @@ in `tools/`, from public files:
 
 | Script | Input | Output |
 |---|---|---|
+| `tools/umbra_light.py` | none (US Standard Atmosphere 1976, ozone and Rayleigh cross-sections in the script) | the umbra table in `SolarSystem/base.frag` |
 | `tools/de440_extract.py` | DE440 ASCII files from `ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de440/` | `resources/de440_1900_2200.bin` |
 | `tools/pck_extract.py` | `pck00011.tpc` from NAIF | `SolarSystem/IauRotation.hpp` |
 | `tools/satellite_fit.py` | Horizons API | `SolarSystem/SatelliteOrbits.hpp` |
