@@ -58,9 +58,9 @@ uniform vec3 atmoColor;
 // each planet its own if Venus's thick haze and Mars's thin dust must differ in width too.
 const float HAZE_TAU = 0.05;
 // How far twilight reaches past the terminator, as the sine of the Sun's depth: the glow
-// falls by e every ~3 degrees. shortcut: one value for every atmosphere, set it per planet
+// falls by e every ~0.7 degrees, a narrow soft edge. shortcut: one value for every atmosphere, set it per planet
 // from its scale height if Venus's and Mars's twilight must differ from Earth's.
-const float TWILIGHT = 0.05;
+const float TWILIGHT = 0.012;
 
 // Cloud tops over the ground, as a fraction of Earth's radius: ~8 km of 6,371.
 const float CLOUD_HEIGHT = 8.0 / 6371.0;
