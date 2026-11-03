@@ -96,6 +96,7 @@ struct HudFrame {
     float fps = 0.0f;
     std::string utcTime;
     std::vector<BodyMarker> markers;
+    std::vector<BodyMarker> skyLabels;   // star and constellation names, not clickable
     bool timePickerOpen = false;
     bool searchOpen = false;
     std::string searchText, searchMatch;
@@ -115,6 +116,7 @@ public:
     void draw(const HudFrame& frame, unsigned int width, unsigned int height) {
         text.begin(width, height);
 
+        drawSkyLabels(frame.skyLabels);
         drawMarkers(frame.markers);
         drawInfoPanel(frame);
         drawStatus(frame, static_cast<float>(width));
@@ -162,6 +164,21 @@ private:
     static constexpr float valueColumn = 165.0f;
 
     TextRenderer text;
+
+    // Below the bodies' names; a name too close to one already placed is skipped.
+    void drawSkyLabels(const std::vector<BodyMarker>& labels) {
+        std::vector<glm::vec2> placed;
+        for (const BodyMarker& m : labels) {
+            const float w = text.measure(m.name, markerScale);
+            const float lx = (m.radius > 0.0f) ? m.x + m.radius + 3.0f : m.x - 0.5f * w;
+            const float ly = m.y + 4.0f;
+            bool overlaps = false;
+            for (const glm::vec2& p : placed) overlaps = overlaps || (std::abs(lx - p.x) < 60.0f && std::abs(ly - p.y) < 13.0f);
+            if (overlaps) continue;
+            placed.emplace_back(lx, ly);
+            text.text(m.name, lx, ly, markerScale, glm::vec4(m.color, m.labelAlpha));
+        }
+    }
 
     void drawMarkers(const std::vector<BodyMarker>& markers) {
         // Draw luminous dots for unresolved bodies (dotAlpha > 0).
@@ -247,7 +264,7 @@ private:
     void drawControls(float height) {
         const std::string hint =
             "CLICK  fly to    ARROWS  navigate    DRAG  orbit    WHEEL  zoom    "
-            "SHIFT / CTRL  time    SPACE  reset    O  orbits    T  date    F  find";
+            "SHIFT / CTRL  time    SPACE  reset    O  orbits    L  star names    C  constellations    T  date    F  find";
 
         text.text(hint, margin, height - margin, smallScale, dim);
     }

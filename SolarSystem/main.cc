@@ -303,6 +303,8 @@ int main(int argc, char** argv) {
             hudFrame.pickerSec      = input.pickerSec;
             solarSystem.collectMarkers(projectionMatrix * viewMatrix, cameraPosition,
                                        size.x, size.y, hudFrame.markers);
+            solarSystem.collectSkyLabels(viewMatrix, projectionMatrix, cameraPosition,
+                                         size.x, size.y, hudFrame.skyLabels);
             lastMarkers = hudFrame.markers;
             hud.draw(hudFrame, size.x, size.y);
 

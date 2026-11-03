@@ -96,6 +96,8 @@ and the shaders next to the binary on every build, changed files only.
   main belt), then none. Minor bodies keep their clickable dots and `F` finds them.
   The focused body's own orbit is hidden, and an orbit much wider than the camera's
   distance fades out, since up close it would only cross the screen as a straight line.
+* **Sky:** `L` shows or hides the names of the brighter stars, `C` the
+  constellation figures and their names. Both are on at start.
 * **Command line** (run from `build/`): `--date 2026-08-12T17:46:00` (UTC),
   `--focus Moon` (camera on the Sun's side of the body), `--azimuth`/`--elevation`
   (degrees, turning the camera from there), `--distance` (km), and
@@ -340,6 +342,13 @@ dropped and the map drew in the sphere's raw frame. The sky now inherits it, as 
 rings do; a render of the picture and one of the catalogue now correlate at 0.52 with
 no offset, against 0.002 before.
 
+Over the stars sit the IAU names of the 280 named stars brighter than magnitude 4.5
+and the 88 constellation figures with their names (`tools/sky_labels.py`,
+`SolarSystem/SkyLabels.hpp`). The figures are drawn at infinity like the stars, so
+every body covers them; the names are hidden behind the body in focus. Names and
+figures stay at their J2000 places, which by 2100 leaves at most Arcturus 4′ off its
+line.
+
 ### Light and exposure
 
 Sunlight falls with the square of the distance from the Sun, and the picture is
@@ -472,6 +481,7 @@ in `tools/`, from public files:
 | Script | Input | Output |
 |---|---|---|
 | `tools/star_catalog.py` | `bsc5.dat` (CDS V/50, or its mirror `tdc-www.harvard.edu/catalogs/bsc5.dat.gz`) | `resources/stars.bin` |
+| `tools/sky_labels.py` | `IAU-CSN.txt` (IAU WGSN star names, `pas.rochester.edu/~emamajek/WGSN/`), `constellations.json` and `constellations.lines.json` (`github.com/ofrohn/d3-celestial`, BSD-3) | `resources/sky_labels.txt` |
 | `tools/umbra_light.py` | none (US Standard Atmosphere 1976, ozone and Rayleigh cross-sections in the script) | the umbra table in `SolarSystem/base.frag` |
 | `tools/de440_extract.py` | DE440 ASCII files from `ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de440/` | `resources/de440_1900_2200.bin` |
 | `tools/pck_extract.py` | `pck00011.tpc` from NAIF | `SolarSystem/IauRotation.hpp` |

@@ -19,6 +19,7 @@
 #include "IauRotation.hpp"
 #include "AsteroidBelt.hpp"
 #include "StarField.hpp"
+#include "SkyLabels.hpp"
 
 class SolarSystem {
 private:
@@ -48,6 +49,7 @@ private:
     OrbitRenderer orbitRenderer;
     AsteroidBelt belt{"resources/asteroid_belt.bin"};
     StarField starField{"resources/stars.bin"};
+    SkyLabels skyLabels{"resources/sky_labels.txt"};
     std::vector<CelestialBody*> comets;
 
     Ephemeris ephemeris{"resources/de440_1900_2200.bin"};
@@ -324,6 +326,22 @@ public:
         static const glm::mat3 icrfToWorld(Astro::icrfToWorld());
         const double years = (Astro::unixToJulianDateTdb(simTimeSeconds) - 2451545.0) / 365.25;
         starField.draw(view, projection, icrfToWorld, static_cast<float>(years));
+        skyLabels.drawLines(view, projection, icrfToWorld);
+    }
+
+    void toggleStarNames() { skyLabels.showStarNames = !skyLabels.showStarNames; }
+    void toggleConstellations() { skyLabels.showConstellations = !skyLabels.showConstellations; }
+
+    // Names on the sky, hidden behind the focused body as collectMarkers hides the others.
+    void collectSkyLabels(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& cameraPosition,
+                          unsigned int width, unsigned int height, std::vector<BodyMarker>& out) const {
+        static const glm::mat3 icrfToWorld(Astro::icrfToWorld());
+        const float targetR = currentTarget ? currentTarget->getScale() : 0.0f;
+        const auto hidden = [&](const glm::vec3& dir) {
+            const float t = glm::dot(-cameraPosition, dir);
+            return t > 0.0f && glm::dot(cameraPosition, cameraPosition) - t * t < targetR * targetR;
+        };
+        skyLabels.collect(view, projection, icrfToWorld, width, height, hidden, out);
     }
 
     void drawBelt(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& cameraPosition) const {

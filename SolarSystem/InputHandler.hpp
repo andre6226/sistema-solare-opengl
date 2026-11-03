@@ -399,6 +399,8 @@ private:
             case sf::Keyboard::Key::Space:    state.timeScale  = 1.0f; break;
 
             case sf::Keyboard::Key::O:        system.toggleOrbitLines();      break;
+            case sf::Keyboard::Key::L:        system.toggleStarNames();       break;
+            case sf::Keyboard::Key::C:        system.toggleConstellations();  break;
             case sf::Keyboard::Key::T:        openTimePicker(system, state);  break;
             case sf::Keyboard::Key::F:
                 state.searchOpen = true;
