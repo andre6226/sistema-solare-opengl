@@ -54,6 +54,8 @@ uniform float hasNight;
 uniform vec3 bodyPole;
 // Limb haze colour x strength; 0 for bodies without air worth drawing.
 uniform vec3 atmoColor;
+// The air's scale height over the body's radius.
+uniform float atmoScaleHeight;
 
 // Cloud tops over the ground, as a fraction of Earth's radius: ~8 km of 6,371.
 const float CLOUD_HEIGHT = 8.0 / 6371.0;
@@ -441,10 +443,15 @@ void main() {
     }
 
     // Limb haze: air seen edge-on scatters sunlight, a thin rim brightest on the lit
-    // side that wraps a little past the terminator, where the high air still sees the Sun.
+    // side. Past the terminator, with the Sun d below the horizon, only the air above
+    // R (1/cos d - 1) still sees it, so the haze fades as the air above that height,
+    // exp(-h/H): 6-8 degrees of twilight on Earth, not a fixed band that, seen close
+    // up where all the disc is near the limb, lit the night side half way.
     if (dot(atmoColor, atmoColor) > 0.0) {
         float rim = pow(1.0 - max(dot(normal, viewDir), 0.0), 4.0);
-        float lit = smoothstep(-0.25, 0.35, dot(normal, lightDir)) * shadowFactor;
+        float sinDepth = -dot(normal, lightDir);
+        float lit = (sinDepth <= 0.0) ? 1.0 : exp(-(inversesqrt(max(1.0 - sinDepth * sinDepth, 1e-6)) - 1.0) / max(atmoScaleHeight, 1e-6));
+        lit *= shadowFactor;
         color += atmoColor * rim * lit * sunlight;
     }
 

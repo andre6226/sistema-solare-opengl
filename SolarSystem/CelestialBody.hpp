@@ -45,6 +45,7 @@ private:
     Texture* clouds = nullptr;       // Earth's cloud cover, drawn over its surface
     Texture* night = nullptr;        // Earth's city lights, on the dark side
     glm::vec3 atmosphere{0.0f};      // limb haze colour x strength, 0 = no air
+    float atmoScaleHeightKm = 1.0f;  // of the air that scatters it, sets how far twilight reaches
     float limbSoftness = 0.0f;       // air above the radius that dims sunlight, over the radius
     // Rings: where the texture starts and below which the ring is dust, as fractions of the
     // outer radius (the quad's half width).
@@ -189,7 +190,7 @@ public:
     void setAirless(bool value) { airless = value; }
     void setClouds(Texture* map) { clouds = map; }
     void setNight(Texture* map) { night = map; }
-    void setAtmosphere(const glm::vec3& haze) { atmosphere = haze; }
+    void setAtmosphere(const glm::vec3& haze, float scaleHeightKm) { atmosphere = haze; atmoScaleHeightKm = scaleHeightKm; }
     void setLimbSoftness(float fraction) { limbSoftness = fraction; }
     void setRingProfile(float inner, float dustBelow) { ringInner = inner; ringDustBelow = dustBelow; }
 
@@ -280,6 +281,7 @@ public:
         glUniform3fv(locs.bodyPole, 1, &pole[0]);
         const glm::vec3 haze = (type == BodyType::Planet) ? atmosphere : glm::vec3(0.0f);
         glUniform3fv(locs.atmoColor, 1, &haze[0]);
+        glUniform1f(locs.atmoScaleHeight, atmoScaleHeightKm / scale);
 
         if (texture != nullptr) {
             texture->bind(0);

@@ -154,4 +154,5 @@ struct UniformLocations {
     GLint hasNight;    // Earth only: city lights
     GLint bodyPole;    // Earth only: north pole, world axes
     GLint atmoColor;   // limb haze colour, 0 = none
+    GLint atmoScaleHeight;   // the air's scale height over the radius
 };
