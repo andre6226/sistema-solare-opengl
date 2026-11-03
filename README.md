@@ -440,9 +440,11 @@ in through twilight, dimmed under cloud. In that map the moonlit ground is blue 
 the lights are yellow, so the lights are what is redder than blue.
 
 Earth, Venus and Mars have a lit rim of air at the limb, brightest on the day side
-and reaching a little past the terminator, where the high air still sees the Sun:
-with the Sun d below the horizon only the air above R(1/cos d − 1) is lit, so the
-glow fades as the air above that height, over 6–8° on Earth, as twilight does.
+and reaching a little past the terminator, where the high air still sees the Sun.
+It is a thin layer scattering sunlight once, bright where the eye looks through it
+edge-on and faint where the Sun grazes it, so the terminator gets no lit band of
+its own. With the Sun d below the horizon only the air above R(1/cos d − 1) is lit,
+so the glow fades as the air above that height, over 6–8° on Earth, as twilight does.
 It is blue on Earth, pale yellow and thick on Venus (whose map shows its cloud tops),
 thin and dusty orange on Mars.
 
