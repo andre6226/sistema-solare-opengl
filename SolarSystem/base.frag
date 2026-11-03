@@ -57,6 +57,10 @@ uniform vec3 atmoColor;
 // shortcut: one haze depth for every atmosphere, sets only how thin the limb glow is; give
 // each planet its own if Venus's thick haze and Mars's thin dust must differ in width too.
 const float HAZE_TAU = 0.05;
+// How far twilight reaches past the terminator, as the sine of the Sun's depth: the glow
+// falls by e every ~3 degrees. shortcut: one value for every atmosphere, set it per planet
+// from its scale height if Venus's and Mars's twilight must differ from Earth's.
+const float TWILIGHT = 0.05;
 
 // Cloud tops over the ground, as a fraction of Earth's radius: ~8 km of 6,371.
 const float CLOUD_HEIGHT = 8.0 / 6371.0;
@@ -276,8 +280,12 @@ void main() {
 
     vec3 albedo = texColor.rgb;
 
-    // Lambert (diffuse)
-    float diff = max(dot(normal, lightDir), 0.0);
+    // Lambert (diffuse). Under air, the high air still lights the ground a little past
+    // the terminator: the Sun's cosine goes soft, TWILIGHT ln(1 + e^(cos/TWILIGHT)), the
+    // cosine by day, fading as e^(cos/TWILIGHT) into the night, with no kink at the
+    // terminator to show as a line.
+    float cosSun = dot(normal, lightDir);
+    float diff = (dot(atmoColor, atmoColor) > 0.0) ? TWILIGHT * log(1.0 + exp(cosSun / TWILIGHT)) : max(cosSun, 0.0);
     // Airless bodies are dusty regolith or ice: Lommel-Seeliger, so a full Moon or a
     // full Io is evenly bright to its limb instead of Lambert-dark there. Cloudy
     // planets keep Lambert, whose darkening limb is what their photos show.
@@ -445,11 +453,12 @@ void main() {
 
     // Limb haze: a thin layer of air (optical depth HAZE_TAU) scattering sunlight once,
     // as mu0 / (mu0 + mu) (1 - e^-tau(1/mu + 1/mu0)), mu0 and mu the cosines of the Sun
-    // and of the eye: bright at the limb, faint face-on, and going to 0 with the ground
-    // at the terminator, so it leaves no lit band there seen from the side.
+    // and of the eye: bright at the limb, faint face-on. mu0 is the soft cosine of the
+    // ground's light, so the glow falls with it, smoothly, through the twilight: no edge
+    // or band of its own.
     if (dot(atmoColor, atmoColor) > 0.0) {
         float mu = max(dot(normal, viewDir), 0.01);
-        float mu0 = max(dot(normal, lightDir), 0.0);
+        float mu0 = diff;
         float haze = mu0 / (mu0 + mu) * (1.0 - exp(-HAZE_TAU * (1.0 / mu + 1.0 / max(mu0, 1e-4))));
         color += atmoColor * haze * shadowFactor * sunlight;
     }

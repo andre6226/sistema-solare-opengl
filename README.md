@@ -441,8 +441,9 @@ the lights are yellow, so the lights are what is redder than blue.
 
 Earth, Venus and Mars have a lit rim of air at the limb, drawn as a thin layer
 scattering sunlight once: bright where the eye looks through it
-edge-on, faint face-on, and going to zero with the ground at the terminator, so
-seen from the side the terminator gets no lit band of its own.
+edge-on, faint face-on. Past the terminator the high air still sees the Sun, so on
+these planets the light on the ground and in the air fades smoothly into the night
+(by e every ~3°) instead of stopping at the terminator, with no line or band there.
 It is blue on Earth, pale yellow and thick on Venus (whose map shows its cloud tops),
 thin and dusty orange on Mars.
 
