@@ -25,6 +25,7 @@ or will be, turned the way it really faces.
 | Comets Encke, Tempel 1, 67P, Hartley 2, Hale-Bopp; Kuiper belt Quaoar, Orcus, Gonggong, Sedna, Arrokoth | JPL small-body ephemerides (Horizons) | one JPL position off the table grid each | **< 1 km**, 6.7 MB |
 | Main asteroid belt | osculating elements of the ~58,000 numbered main-belt asteroids brighter than H 15 (JPL Small-Body Database) | — | Kepler orbits about the Sun: a picture of the belt, not an ephemeris |
 | Saturn's rings | texture measured on the Cassini division and Encke gap; opacity from Cassini's radio occultation (PDS Rings Node, Rev 7, 10 km) | — | D ring to F ring at the real radii |
+| Stars | Yale Bright Star Catalogue (BSC5): 9,096 stars to V ~6.5, J2000 positions, proper motions, V and B−V | Sirius's position, Arcturus's proper motion, Rigel's and Betelgeuse's colours in the script's self-check; a render lines up with the Milky Way picture (correlation 0.52 at zero offset) | positions to the catalogue's ~1″, moved by proper motion (Arcturus 11′ in 300 years); no aberration or parallax |
 | Uranus's rings | radii from French's 2020 occultation fit (PDS Rings Node); widths and opacities from French et al. 1991 | — | the ten narrow rings and the dusty ζ, drawn circular |
 
 **The one thing no model fixes:** Earth's rotation after 2026. UTC is kept as
@@ -323,6 +324,22 @@ asteroids. They show only from outside the belt, fading in from 3.3 to 6.7 AU fr
 the Sun: from within it, 58,000 dots would fill a sky where no asteroid can be seen
 with the naked eye.
 
+### The stars
+
+The naked-eye stars are drawn as points from the Yale Bright Star Catalogue
+(`tools/star_catalog.py`, `SolarSystem/StarField.hpp`): each at its J2000 direction,
+moved by its proper motion for the date, as bright as its V magnitude (the light on
+screen goes as 10^(−0.4 V); stars brighter than magnitude 3 fill their pixel and
+spread wider, as in a photo) and in the colour of a black body at the temperature its
+B−V gives: Rigel blue-white, Betelgeuse and Antares orange. The Milky Way picture
+behind them is dimmed to 30%, so its own burnt-out stars stay faint.
+
+That picture was never where it should be: `CelestialBody::update` passed a body only
+its parent's position, so the galactic orientation meant for the sky sphere was
+dropped and the map drew in the sphere's raw frame. The sky now inherits it, as the
+rings do; a render of the picture and one of the catalogue now correlate at 0.52 with
+no offset, against 0.002 before.
+
 ### Light and exposure
 
 Sunlight falls with the square of the distance from the Sun, and the picture is
@@ -454,6 +471,7 @@ in `tools/`, from public files:
 
 | Script | Input | Output |
 |---|---|---|
+| `tools/star_catalog.py` | `bsc5.dat` (CDS V/50, or its mirror `tdc-www.harvard.edu/catalogs/bsc5.dat.gz`) | `resources/stars.bin` |
 | `tools/umbra_light.py` | none (US Standard Atmosphere 1976, ozone and Rayleigh cross-sections in the script) | the umbra table in `SolarSystem/base.frag` |
 | `tools/de440_extract.py` | DE440 ASCII files from `ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de440/` | `resources/de440_1900_2200.bin` |
 | `tools/pck_extract.py` | `pck00011.tpc` from NAIF | `SolarSystem/IauRotation.hpp` |

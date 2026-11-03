@@ -269,6 +269,7 @@ int main(int argc, char** argv) {
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            solarSystem.drawStars(viewMatrix, projectionMatrix);
             shader.use();
             glUniformMatrix4fv(locs.view, 1, GL_FALSE, &viewMatrix[0][0]);
             glUniformMatrix4fv(locs.projection, 1, GL_FALSE, &projectionMatrix[0][0]);

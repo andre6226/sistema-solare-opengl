@@ -18,6 +18,7 @@
 #include "Orbits.hpp"
 #include "IauRotation.hpp"
 #include "AsteroidBelt.hpp"
+#include "StarField.hpp"
 
 class SolarSystem {
 private:
@@ -46,6 +47,7 @@ private:
 
     OrbitRenderer orbitRenderer;
     AsteroidBelt belt{"resources/asteroid_belt.bin"};
+    StarField starField{"resources/stars.bin"};
     std::vector<CelestialBody*> comets;
 
     Ephemeris ephemeris{"resources/de440_1900_2200.bin"};
@@ -282,9 +284,12 @@ public:
 
         // Background star sphere first, at infinity, without writing depth so
         // every solar-system body and beacon renders cleanly in front of it.
+        // Added onto the stars drawn before it (drawStars), not over them.
         if (skySphere) {
             glDepthMask(GL_FALSE);
+            glBlendFunc(GL_ONE, GL_ONE);
             skySphere->drawSelf(locs);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glDepthMask(GL_TRUE);
         }
 
@@ -312,6 +317,13 @@ public:
             body->drawSelf(locs);
         }
         glDepthMask(GL_TRUE);
+    }
+
+    // Before draw(): the catalogue stars, then draw() adds the Milky Way picture.
+    void drawStars(const glm::mat4& view, const glm::mat4& projection) const {
+        static const glm::mat3 icrfToWorld(Astro::icrfToWorld());
+        const double years = (Astro::unixToJulianDateTdb(simTimeSeconds) - 2451545.0) / 365.25;
+        starField.draw(view, projection, icrfToWorld, static_cast<float>(years));
     }
 
     void drawBelt(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& cameraPosition) const {

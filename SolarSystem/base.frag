@@ -71,6 +71,7 @@ const float CLOUD_HEIGHT = 8.0 / 6371.0;
 uniform float ringInner;
 uniform float ringDustBelow;
 const float RING_OUTER = 1.0;
+const float MILKY_WAY_GAIN = 0.3;
 
 // The photosphere's colour in linear sRGB: a 5772 K black body through the CIE 1931
 // observer, white point D65 (peach-white, #FFF1EA on screen).
@@ -250,7 +251,9 @@ void main() {
     }
 
     if (bodyType == BODY_SKY) {
-        FragColor = texColor;
+        // The Milky Way picture, dimmed so its own burnt-out stars stay faint behind
+        // the catalogue's (StarField.hpp), which carry the real magnitudes.
+        FragColor = vec4(texColor.rgb * MILKY_WAY_GAIN, 1.0);
         return;
     }
 

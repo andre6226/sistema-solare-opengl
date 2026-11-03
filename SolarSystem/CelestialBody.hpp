@@ -135,10 +135,11 @@ public:
 
         // Bodies without an IAU model: tilting about -X leans the pole toward world -Z
         // (ecliptic longitude 90 deg), where Earth's north pole points.
-        // Rings lie in the parent's equator, the only orientation they inherit.
+        // Rings lie in the parent's equator, the sky in the galactic frame its matrix
+        // carries: the only orientations inherited.
         const glm::dmat4 tiltedMatrix = hasPole
             ? positionMatrix * glm::dmat4(equatorFrame)
-            : (type == BodyType::Ring)
+            : (type == BodyType::Ring || type == BodyType::Sky)
             ? positionMatrix * glm::dmat4(glm::dmat3(parentMatrix))
             : glm::rotate(positionMatrix, static_cast<double>(axialTilt), glm::dvec3(-1.0, 0.0, 0.0));
 
