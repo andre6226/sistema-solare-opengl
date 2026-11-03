@@ -54,8 +54,6 @@ uniform float hasNight;
 uniform vec3 bodyPole;
 // Limb haze colour x strength; 0 for bodies without air worth drawing.
 uniform vec3 atmoColor;
-// The air's scale height over the body's radius.
-uniform float atmoScaleHeight;
 // shortcut: one haze depth for every atmosphere, sets only how thin the limb glow is; give
 // each planet its own if Venus's thick haze and Mars's thin dust must differ in width too.
 const float HAZE_TAU = 0.05;
@@ -447,18 +445,13 @@ void main() {
 
     // Limb haze: a thin layer of air (optical depth HAZE_TAU) scattering sunlight once,
     // as mu0 / (mu0 + mu) (1 - e^-tau(1/mu + 1/mu0)), mu0 and mu the cosines of the Sun
-    // and of the eye: bright at the limb, faint face-on, and fading where the Sun grazes,
-    // so the terminator gets no lit band of its own. Grazing, the Sun's path through the
-    // air stops lengthening at the Chapman airmass, sqrt(pi R / 2H). Past the terminator,
-    // with the Sun d below the horizon, only the air above R (1/cos d - 1) still sees it,
-    // so the haze fades as the air above that height, exp(-h/H): 6-8 degrees on Earth.
+    // and of the eye: bright at the limb, faint face-on, and going to 0 with the ground
+    // at the terminator, so it leaves no lit band there seen from the side.
     if (dot(atmoColor, atmoColor) > 0.0) {
         float mu = max(dot(normal, viewDir), 0.01);
-        float sinDepth = -dot(normal, lightDir);
-        float mu0 = max(-sinDepth, sqrt(2.0 * atmoScaleHeight / 3.14159265));
-        float haze = mu0 / (mu0 + mu) * (1.0 - exp(-HAZE_TAU * (1.0 / mu + 1.0 / mu0)));
-        float lit = (sinDepth <= 0.0) ? 1.0 : exp(-(inversesqrt(max(1.0 - sinDepth * sinDepth, 1e-6)) - 1.0) / max(atmoScaleHeight, 1e-6));
-        color += atmoColor * haze * lit * shadowFactor * sunlight;
+        float mu0 = max(dot(normal, lightDir), 0.0);
+        float haze = mu0 / (mu0 + mu) * (1.0 - exp(-HAZE_TAU * (1.0 / mu + 1.0 / max(mu0, 1e-4))));
+        color += atmoColor * haze * shadowFactor * sunlight;
     }
 
     FragColor = vec4(color, texColor.a);

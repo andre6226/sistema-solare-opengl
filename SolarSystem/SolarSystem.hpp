@@ -689,13 +689,13 @@ private:
         // --- INNER PLANETS AND ASTEROID ---
         createBody(Astro::Mercury, sun);
         // Limb haze, colour x strength: Venus's thick sulphuric haze, Mars's thin dusty air.
-        createBody(Astro::Venus, sun)->setAtmosphere(glm::vec3(1.0f, 0.90f, 0.65f) * 0.55f, 5.0f);   // haze above the cloud tops
+        createBody(Astro::Venus, sun)->setAtmosphere(glm::vec3(1.0f, 0.90f, 0.65f) * 0.55f);
 
         CelestialBody* earth = createBody(Astro::Earth, sun);
         earth->setTiltChildren(false); // the Moon follows the ecliptic, not Earth's equator
         earth->setClouds(loadTexture("resources/EarthClouds.jpg", false));
         earth->setNight(loadTexture("resources/EarthNight.jpg"));
-        earth->setAtmosphere(glm::vec3(0.30f, 0.55f, 1.0f) * 0.45f, 8.5f);
+        earth->setAtmosphere(glm::vec3(0.30f, 0.55f, 1.0f) * 0.45f);
         // Shadow edges: sunlight grazing the limb fades out over this much air, as a
         // fraction of the radius. Earth: 0 to 150 km, whose mean 75 km is Danjon's 1/85
         // widening of the umbra. shortcut: the others are estimates of their haze tops
@@ -706,7 +706,7 @@ private:
         createBody(Astro::Eros, sun, loadShape("resources/models/Eros.obj"));
 
         CelestialBody* mars = createBody(Astro::Mars, sun);
-        mars->setAtmosphere(glm::vec3(0.95f, 0.62f, 0.42f) * 0.18f, 11.1f);
+        mars->setAtmosphere(glm::vec3(0.95f, 0.62f, 0.42f) * 0.18f);
         createBody(Astro::Phobos, mars, loadShape("resources/models/Phobos.tab"));
         createBody(Astro::Deimos, mars, loadShape("resources/models/Deimos.tab"));
 

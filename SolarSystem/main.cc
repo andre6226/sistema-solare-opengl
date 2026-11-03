@@ -131,7 +131,6 @@ int main(int argc, char** argv) {
         locs.hasNight           = shader.uniformLocation("hasNight");
         locs.bodyPole           = shader.uniformLocation("bodyPole");
         locs.atmoColor          = shader.uniformLocation("atmoColor");
-        locs.atmoScaleHeight    = shader.uniformLocation("atmoScaleHeight");
 
         shader.use();
         // Sampler uniforms default to 0, so binding textures to GL_TEXTURE0
