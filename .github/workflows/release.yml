@@ -1,0 +1,82 @@
+name: Release binaries
+
+# Pushing a tag v* builds Windows, macOS and Linux, runs the tests and attaches
+# the ready-to-run zips to the release of that tag (created if missing).
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  # LFS is fetched once here: three jobs each pulling ~470 MB would burn the free LFS bandwidth quota.
+  resources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+      - uses: actions/upload-artifact@v4
+        with: { name: resources, path: resources, compression-level: 0 }
+
+  build:
+    needs: resources
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  name: Linux-x64 }
+          - { os: windows-latest, name: Windows-x64 }
+          - { os: macos-latest,   name: macOS-arm64 }
+    runs-on: ${{ matrix.os }}
+    defaults: { run: { shell: bash } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: resources, path: resources }
+
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxrandr-dev libxcursor-dev libxi-dev libudev-dev libgl1-mesa-dev libfreetype-dev
+
+      - name: Build
+        run: |
+          cmake -B build -D CMAKE_BUILD_TYPE=Release -D SFML_BUILD_AUDIO=OFF -D SFML_BUILD_NETWORK=OFF -D SFML_USE_STATIC_STD_LIBS=ON
+          cmake --build build --config Release -j 4
+
+      - name: Test
+        run: |
+          cmake -S tests -B build/tests -D CMAKE_BUILD_TYPE=Release
+          cmake --build build/tests --config Release -j 4
+          ctest --test-dir build/tests -C Release --output-on-failure
+
+      - name: Package
+        run: |
+          dir="SolarSystem-${{ github.ref_name }}-${{ matrix.name }}"
+          mkdir -p "$dir/SolarSystem"
+          cp -r resources "$dir/"
+          cp SolarSystem/*.vert SolarSystem/*.frag "$dir/SolarSystem/"
+          cp README.md LICENSE "$dir/"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cp build/SolarSystem.exe "$dir/"
+            7z a -tzip "$dir.zip" "$dir" > /dev/null
+          else
+            cp build/SolarSystem.bin "$dir/"
+            printf '#!/bin/sh\ncd "$(dirname "$0")" && ./SolarSystem.bin\n' > "$dir/Avvia.command"
+            chmod +x "$dir/Avvia.command" "$dir/SolarSystem.bin"
+            zip -qr "$dir.zip" "$dir"
+          fi
+      - uses: actions/upload-artifact@v4
+        with: { name: "bin-${{ matrix.name }}", path: "*.zip", compression-level: 0 }
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'bin-*', merge-multiple: true }
+      - name: Attach to release
+        env: { GH_TOKEN: "${{ github.token }}", GH_REPO: "${{ github.repository }}" }
+        run: |
+          gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes ""
+          gh release upload "$GITHUB_REF_NAME" *.zip --clobber
