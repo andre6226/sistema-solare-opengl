@@ -525,7 +525,7 @@ void runTier2EdgeTests() {
 
         // 5. Residual subtraction dPerpSq >= 0
         float dPerpSq = glm::dot(offRel, offRel) - zRel * zRel;
-        E2E_ASSERT_TRUE(TIER, FEAT, "dPerpSq is non-negative", dPerpSq >= 0.0f);
+        E2E_ASSERT_TRUE(TIER, FEAT, "dPerpSq is non-negative", dPerpSq >= -1e-6f * zRel * zRel);   // float cancellation (FMA on ARM) can go a few ulp below 0
     }
 
     // ========================================================================
