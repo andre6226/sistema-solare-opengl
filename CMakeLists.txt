@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.5...4.0)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum policy version for all subprojects")
 
+project(ProgettoEsame_SistemaSolare LANGUAGES CXX)
+
 # Static CRT on Windows, as SFML's static libs (SFML_USE_STATIC_STD_LIBS): no vcruntime DLLs to install.
+# After project(): MSVC is not defined before the compiler is detected.
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
-
-project(ProgettoEsame_SistemaSolare LANGUAGES CXX)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 foreach(cfg DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
