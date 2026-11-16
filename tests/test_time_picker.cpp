@@ -1,3 +1,4 @@
+#undef NDEBUG
 #include <cassert>
 #include <iostream>
 #include <cmath>
@@ -22,8 +23,10 @@ int main() {
     assert(Astro::daysInMonth(2026, 10) == 31);
     std::cout << "[PASS] daysInMonth calculations\n";
 
-    // 2. Round-trip conversion between unix and UTC parts
+    // 2. Round-trip conversion between unix and UTC parts (including pre-1970)
     const double testEpochs[] = {
+        -2208988800.0,  // 1900-01-01 00:00:00
+        -1596629465.0,  // 1919-05-29 13:08:55 (Eddington eclipse)
         0.0,            // 1970-01-01 00:00:00
         946728000.0,    // 2000-01-01 12:00:00
         1712600280.0,   // 2024-04-08 18:18:00 (Great North American Eclipse)
@@ -157,10 +160,10 @@ int main() {
         // take the equation of time, at the solar declination.
         for (const auto& [month, day, lat, lon] : {std::tuple{3, 20, 0.0, 1.9}, std::tuple{6, 21, 23.44, 0.4},
                                                      std::tuple{12, 21, -23.43, -0.5}}) {
-            const double unix = Astro::utcDateTimeToUnix(2026, month, day, 12, 0, 0);
-            const double jdTdb = Astro::unixToJulianDateTdb(unix);
+            const double u = Astro::utcDateTimeToUnix(2026, month, day, 12, 0, 0);
+            const double jdTdb = Astro::unixToJulianDateTdb(u);
             const glm::dvec3 nut = eph.evaluate(Ephemeris::Nutation, jdTdb).position;
-            const glm::dmat3 toBody = glm::transpose(Astro::earthToIcrf(Astro::unixToJulianDateUt1(unix), jdTdb, nut.x, nut.y));
+            const glm::dmat3 toBody = glm::transpose(Astro::earthToIcrf(Astro::unixToJulianDateUt1(u), jdTdb, nut.x, nut.y));
             const glm::dvec3 sun = glm::normalize(toBody * -eph.heliocentric(Ephemeris::EarthMoonBarycentre, jdTdb).position);
             assert(std::abs(glm::degrees(std::asin(sun.z)) - lat) < 0.3);
             assert(std::abs(glm::degrees(std::atan2(sun.y, sun.x)) - lon) < 0.3);

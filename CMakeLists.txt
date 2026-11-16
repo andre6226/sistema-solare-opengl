@@ -4,6 +4,9 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum policy version for al
 project(ProgettoEsame_SistemaSolare LANGUAGES CXX)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+foreach(cfg DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${cfg} ${CMAKE_BINARY_DIR})
+endforeach()
 
 
 include(FetchContent)
@@ -27,6 +30,7 @@ add_library(common INTERFACE)
 target_compile_features(common INTERFACE cxx_std_17)
 target_compile_options(common INTERFACE
     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wextra -DGL_SILENCE_DEPRECATION>
+    $<$<CXX_COMPILER_ID:MSVC>: /W3 /utf-8 -D_CRT_SECURE_NO_WARNINGS -DNOMINMAX>
 )
 
 find_package(OpenGL REQUIRED)
@@ -54,14 +58,6 @@ function(setup_target_resources target_name)
             "$<TARGET_FILE_DIR:${target_name}>/${target_name}"
     )
     add_dependencies(${target_name}_files ${target_name})
-
-    if(WIN32)
-        add_custom_command(TARGET ${target_name} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory 
-                "${CMAKE_BINARY_DIR}/_deps/sfml-build/bin" 
-                "$<TARGET_FILE_DIR:${target_name}>/"
-        )
-    endif()
 endfunction()
 
 

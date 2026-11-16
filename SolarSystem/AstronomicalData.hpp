@@ -6,7 +6,7 @@
 
 #include <glm/gtc/constants.hpp>
 #include <cassert>
-#include <ctime>
+#include <cstdio>
 #include <string>
 #include "SatelliteOrbits.hpp"
 
@@ -273,19 +273,6 @@ namespace Astro {
         return b;
     }
 
-    inline std::string formatUtcDateTime(double simUnixSeconds) {
-        const std::time_t raw = static_cast<std::time_t>(std::floor(simUnixSeconds));
-        std::tm tmVal;
-#if defined(_WIN32)
-        gmtime_s(&tmVal, &raw);
-#else
-        gmtime_r(&raw, &tmVal);
-#endif
-        char buf[32];
-        std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S UTC", &tmVal);
-        return std::string(buf);
-    }
-
     inline int daysInMonth(int year, int month) {
         if (month == 2) {
             bool leap = (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
@@ -295,36 +282,41 @@ namespace Astro {
         return 31;
     }
 
+    // Civil calendar arithmetic (Hinnant): Windows gmtime_s/_mkgmtime fail before 1970.
     inline void unixToUtcDateTimeParts(double simUnixSeconds, int& y, int& m, int& d, int& h, int& min, int& s) {
-        const std::time_t raw = static_cast<std::time_t>(std::floor(simUnixSeconds));
-        std::tm tmVal;
-#if defined(_WIN32)
-        gmtime_s(&tmVal, &raw);
-#else
-        gmtime_r(&raw, &tmVal);
-#endif
-        y = tmVal.tm_year + 1900;
-        m = tmVal.tm_mon + 1;
-        d = tmVal.tm_mday;
-        h = tmVal.tm_hour;
-        min = tmVal.tm_min;
-        s = tmVal.tm_sec;
+        const long long total = static_cast<long long>(std::floor(simUnixSeconds));
+        long long days = total / 86400LL, rem = total % 86400LL;
+        if (rem < 0) { rem += 86400LL; --days; }
+        h = static_cast<int>(rem / 3600LL);
+        min = static_cast<int>((rem % 3600LL) / 60LL);
+        s = static_cast<int>(rem % 60LL);
+        const long long z = days + 719468LL;
+        const long long era = (z >= 0 ? z : z - 146096LL) / 146097LL;
+        const unsigned doe = static_cast<unsigned>(z - era * 146097LL);
+        const unsigned yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+        const unsigned doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+        const unsigned mp = (5 * doy + 2) / 153;
+        d = static_cast<int>(doy - (153 * mp + 2) / 5 + 1);
+        m = static_cast<int>(mp < 10 ? mp + 3 : mp - 9);
+        y = static_cast<int>(yoe) + static_cast<int>(era) * 400 + (m <= 2);
     }
 
     inline double utcDateTimeToUnix(int year, int month, int day, int hour, int minute, int second) {
-        std::tm tmVal{};
-        tmVal.tm_year = year - 1900;
-        tmVal.tm_mon  = month - 1;
-        tmVal.tm_mday = day;
-        tmVal.tm_hour = hour;
-        tmVal.tm_min  = minute;
-        tmVal.tm_sec  = second;
-        tmVal.tm_isdst = 0;
-#if defined(_WIN32)
-        return static_cast<double>(_mkgmtime(&tmVal));
-#else
-        return static_cast<double>(timegm(&tmVal));
-#endif
+        const long long y = year - (month <= 2);
+        const long long era = (y >= 0 ? y : y - 399) / 400;
+        const unsigned yoe = static_cast<unsigned>(y - era * 400);
+        const unsigned doy = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1;
+        const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        const long long days = era * 146097LL + static_cast<long long>(doe) - 719468LL;
+        return static_cast<double>(days * 86400LL + hour * 3600LL + minute * 60LL + second);
+    }
+
+    inline std::string formatUtcDateTime(double simUnixSeconds) {
+        int y, m, d, h, min, s;
+        unixToUtcDateTimeParts(simUnixSeconds, y, m, d, h, min, s);
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d UTC", y, m, d, h, min, s);
+        return std::string(buf);
     }
 
     // TT - UTC in seconds. From 1972 UTC ticks atomic seconds: TT - UTC = 32.184 s +

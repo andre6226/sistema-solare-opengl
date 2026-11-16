@@ -94,7 +94,7 @@ private:
     static bool endsWith(const std::string& text, const std::string& suffix) {
         if (suffix.size() > text.size()) return false;
         return std::equal(suffix.rbegin(), suffix.rend(), text.rbegin(),
-                          [](char a, char b) { return std::tolower(a) == std::tolower(b); });
+                          [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); });
     }
 
     static std::ifstream openOrThrow(const std::string& path) {

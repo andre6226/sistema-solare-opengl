@@ -41,6 +41,7 @@ public:
         std::vector<glm::vec3> segments;
         std::string line;
         while (std::getline(in, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
             std::istringstream s(line);
             char kind = 0;
             float ra = 0, dec = 0, a = 0, b = 0;

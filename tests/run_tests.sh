@@ -39,8 +39,7 @@ g++ -std=c++17 -O2 -Wall -Wextra -DSFML_STATIC \
     -I"$ROOT_DIR/build/_deps/glm-src" \
     -I"$ROOT_DIR/build/_deps/sfml-src/include" \
     "$ROOT_DIR/tests/test_time_picker.cpp" \
-    -o "$ROOT_DIR/build/test_time_picker" \
-    -L"$ROOT_DIR/build/_deps/sfml-build/lib" -lsfml-graphics -lsfml-window -lsfml-system -lGL
+    -o "$ROOT_DIR/build/test_time_picker"
 "$ROOT_DIR/build/test_time_picker"
 
 echo ""

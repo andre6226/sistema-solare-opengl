@@ -65,13 +65,14 @@ even a negative one, it is one more row in `Astro::ttMinusUtcSeconds`.
 
 ## Build and run
 
-Textures, tables and shape models are stored with Git LFS: install `git-lfs`
-before cloning (or run `git lfs pull` after), or they arrive as 130-byte pointers.
+Download the release `.zip` (which already contains all textures, tables and
+shape models), or install `git-lfs` before cloning (`git lfs pull` after) so
+they do not arrive as 130-byte pointers:
 
 ```
 cmake -B build -D CMAKE_BUILD_TYPE=Release
-cmake --build build
-./build/SolarSystem.bin
+cmake --build build --config Release
+./build/SolarSystem.bin        # Linux / macOS (build\SolarSystem.exe on Windows)
 ```
 
 SFML and GLM are fetched by CMake on the first configure. The build copies

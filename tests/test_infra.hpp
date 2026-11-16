@@ -277,15 +277,21 @@ namespace Oracle {
 
     // Format UTC Date Time
     inline std::string formatUtcDateTime(double unixSeconds) {
-        std::time_t raw = static_cast<std::time_t>(unixSeconds);
-        std::tm tmVal;
-#if defined(_WIN32)
-        gmtime_s(&tmVal, &raw);
-#else
-        gmtime_r(&raw, &tmVal);
-#endif
-        char buf[64];
-        std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S UTC", &tmVal);
+        const long long total = static_cast<long long>(std::floor(unixSeconds));
+        long long days = total / 86400LL, rem = total % 86400LL;
+        if (rem < 0) { rem += 86400LL; --days; }
+        const long long z = days + 719468LL;
+        const long long era = (z >= 0 ? z : z - 146096LL) / 146097LL;
+        const unsigned doe = static_cast<unsigned>(z - era * 146097LL);
+        const unsigned yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+        const unsigned doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+        const unsigned mp = (5 * doy + 2) / 153;
+        const int d = static_cast<int>(doy - (153 * mp + 2) / 5 + 1);
+        const int m = static_cast<int>(mp < 10 ? mp + 3 : mp - 9);
+        const int y = static_cast<int>(yoe) + static_cast<int>(era) * 400 + (m <= 2);
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d UTC",
+                      y, m, d, int(rem / 3600LL), int((rem % 3600LL) / 60LL), int(rem % 60LL));
         return std::string(buf);
     }
 
