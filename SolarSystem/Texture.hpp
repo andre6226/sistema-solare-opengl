@@ -20,6 +20,7 @@ class Texture {
 public:
     GLuint ID = 0;
     glm::vec3 tint{0.9f, 0.9f, 0.9f};
+    static inline int sizeLimit = 1 << 30;   // --max-texture, for a GPU whose driver never reports running out
 
     // srgb = false for data maps (Earth's cloud opacity), which must be filtered and
     // mipmapped as stored: averaged in linear light, a grey opacity map swells into halos.
@@ -88,7 +89,7 @@ public:
         // All the maps at full size take ~1.8 GB of video memory, more than an old
         // integrated GPU has: there they came out blank. Past the GPU's size limit, or
         // once a map has not fitted, every map from then on is loaded at half size.
-        static const GLint maxSize = [] { GLint s = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &s); return s; }();
+        static const GLint maxSize = [] { GLint s = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &s); return std::min(s, sizeLimit); }();
         static unsigned int halvings = 0;
         for (unsigned int i = 0; i < halvings && image.getSize().y > 64; ++i) image = halve(image);
         while (image.getSize().x > unsigned(maxSize) || image.getSize().y > unsigned(maxSize)) image = halve(image);

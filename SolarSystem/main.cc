@@ -42,9 +42,10 @@ static constexpr int screenshotFrames = 3;
 static int usage(const char* argv0) {
     std::cerr << "usage: " << argv0 << " [--date YYYY-MM-DDTHH:MM:SS] [--focus BODY] [--distance KM]\n"
               << "       [--azimuth DEG] [--elevation DEG] [--size WxH] [--orbits on|all|off]\n"
-              << "       [--screenshot OUT.png]\n"
+              << "       [--max-texture PX] [--screenshot OUT.png]\n"
               << "With --focus, the camera looks from the Sun's side of the body; azimuth and\n"
-              << "elevation turn it from there. --screenshot freezes time, saves, and exits.\n";
+              << "elevation turn it from there. --screenshot freezes time, saves, and exits.\n"
+              << "--max-texture 2048 loads every map at most that wide, for GPUs short of memory.\n";
     return 2;
 }
 
@@ -67,6 +68,10 @@ int main(int argc, char** argv) {
             else if (opt == "--orbits" && std::string(value) == "on")  orbitMode = OrbitRenderer::Planets;
             else if (opt == "--orbits" && std::string(value) == "all") orbitMode = OrbitRenderer::All;
             else if (opt == "--orbits" && std::string(value) == "off") orbitMode = OrbitRenderer::None;
+            else if (opt == "--max-texture") {
+                Texture::sizeLimit = std::stoi(value);
+                if (Texture::sizeLimit < 64) return usage(argv[0]);
+            }
             else if (opt == "--size") {
                 unsigned w = 0, h = 0;
                 if (std::sscanf(value, "%ux%u", &w, &h) != 2 || w < 64 || h < 64 || w > 8192 || h > 8192) return usage(argv[0]);

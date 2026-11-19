@@ -103,7 +103,9 @@ and the shaders next to the binary on every build, changed files only.
   `--focus Moon` (camera on the Sun's side of the body), `--azimuth`/`--elevation`
   (degrees, turning the camera from there), `--distance` (km), and
   `--screenshot out.png`, which freezes time, saves the frame and exits;
-  `--size 2560x1372` sets the window and so the picture's size, `--orbits all`
+  `--size 2560x1372` sets the window and so the picture's size, `--max-texture 2048`
+  caps every map at that width for a GPU short of video memory (a map that does not
+  fit is already halved on its own, when the driver says so), `--orbits all`
   or `off` shows the minor bodies' orbits too or no orbit lines:
 
   ```

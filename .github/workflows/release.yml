@@ -59,6 +59,7 @@ jobs:
           cp README.md LICENSE "$dir/"
           if [ "$RUNNER_OS" = Windows ]; then
             cp build/SolarSystem.exe "$dir/"
+            printf 'SolarSystem.exe --max-texture 2048\r\n' > "$dir/Avvia-leggero.bat"
             7z a -tzip "$dir.zip" "$dir" > /dev/null
           else
             cp build/SolarSystem.bin "$dir/"
