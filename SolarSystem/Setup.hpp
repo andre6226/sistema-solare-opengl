@@ -1,6 +1,7 @@
 #pragma once
 #include "../glad/gl.h"
 #include <SFML/Graphics.hpp>
+#include <iostream>
 #include <stdexcept>
 
 // Owns the window and the OpenGL context. The window is a by-value member:
@@ -30,6 +31,9 @@ public:
         if (gladLoadGL(sf::Context::getFunction) == 0) {
             throw std::runtime_error("failed to load the OpenGL function pointers (gladLoadGL)");
         }
+
+        // Which GPU and driver: the first thing to know when a machine draws it wrong.
+        std::cout << "[gl] " << glGetString(GL_RENDERER) << ", OpenGL " << glGetString(GL_VERSION) << std::endl;
 
         glEnable(GL_DEPTH_TEST);
 

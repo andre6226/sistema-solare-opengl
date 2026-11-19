@@ -83,13 +83,13 @@ int main(int argc, char** argv) {
         sf::Window& window = setup.window;
 
         Shader shader("SolarSystem/base.vert", "SolarSystem/base.frag");
+        Hud hud;   // before the planets' maps, so its font atlas is never the one left without video memory
         SolarSystem solarSystem;
         solarSystem.setOrbitMode(orbitMode);
         std::cout << "[time] Initialized UTC: " << Astro::formatUtcDateTime(solarSystem.getSimUnixSeconds())
                   << " (JD " << std::fixed << std::setprecision(2) << solarSystem.getJulianDate()
                   << ", T = " << std::setprecision(6) << solarSystem.getJulianCenturies() << " cy)" << std::endl;
         Camera camera(30.0f, 0.0f, 20.0f);
-        Hud hud;
 
         if (!dateArg.empty()) {
             int y, mo, d, h, mi, sec;

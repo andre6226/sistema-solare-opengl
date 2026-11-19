@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iostream>
 #include <string>
+#include <vector>
 
 // Anisotropic filtering is an extension in OpenGL 3.3 (core only from 4.6), and
 // the glad loader here was generated without extensions, so the two enums are
@@ -54,8 +55,7 @@ public:
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
         }
 
-        sf::Vector2u size = image.getSize();
-        const GLvoid* pixelData = image.getPixelsPtr();
+        const sf::Vector2u size = image.getSize();
 
         // Compute a bright representative tint from the texture so distant
         // planet beacons carry each body's recognizable colour.
@@ -85,9 +85,26 @@ public:
         // sampling, and GL_FRAMEBUFFER_SRGB re-encodes on write. Only the three
         // colour channels are converted; alpha stays linear, which is what the
         // ring cutout needs.
-        glTexImage2D(GL_TEXTURE_2D, 0, srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
-
-        glGenerateMipmap(GL_TEXTURE_2D);
+        // All the maps at full size take ~1.8 GB of video memory, more than an old
+        // integrated GPU has: there they came out blank. Past the GPU's size limit, or
+        // once a map has not fitted, every map from then on is loaded at half size.
+        static const GLint maxSize = [] { GLint s = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &s); return s; }();
+        static unsigned int halvings = 0;
+        for (unsigned int i = 0; i < halvings && image.getSize().y > 64; ++i) image = halve(image);
+        while (image.getSize().x > unsigned(maxSize) || image.getSize().y > unsigned(maxSize)) image = halve(image);
+        for (;;) {
+            while (glGetError() != GL_NO_ERROR) { }
+            glTexImage2D(GL_TEXTURE_2D, 0, srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8, image.getSize().x, image.getSize().y,
+                         0, GL_RGBA, GL_UNSIGNED_BYTE, image.getPixelsPtr());
+            glGenerateMipmap(GL_TEXTURE_2D);
+            const GLenum error = glGetError();
+            if (error == GL_NO_ERROR || image.getSize().y <= 64) break;
+            std::cerr << "[texture] " << path << " " << image.getSize().x << "x" << image.getSize().y
+                      << " does not fit in video memory (GL error 0x" << std::hex << error << std::dec
+                      << "): this and the next maps at half size" << std::endl;
+            image = halve(image);
+            ++halvings;
+        }
 
         glBindTexture(GL_TEXTURE_2D, 0);
     }
@@ -114,6 +131,22 @@ public:
             other.ID = 0;
         }
         return *this;
+    }
+
+    // Half the size in each direction, each texel the mean of four.
+    static sf::Image halve(const sf::Image& in) {
+        const sf::Vector2u s = in.getSize(), h{std::max(1u, s.x / 2), std::max(1u, s.y / 2)};
+        const std::uint8_t* p = in.getPixelsPtr();
+        std::vector<std::uint8_t> out(std::size_t(h.x) * h.y * 4);
+        for (unsigned int y = 0; y < h.y; ++y)
+            for (unsigned int x = 0; x < h.x; ++x)
+                for (unsigned int c = 0; c < 4; ++c) {
+                    const auto at = [&](unsigned int dx, unsigned int dy) {
+                        return unsigned(p[(std::size_t(std::min(2 * y + dy, s.y - 1)) * s.x + std::min(2 * x + dx, s.x - 1)) * 4 + c]);
+                    };
+                    out[(std::size_t(y) * h.x + x) * 4 + c] = std::uint8_t((at(0, 0) + at(1, 0) + at(0, 1) + at(1, 1) + 2) / 4);
+                }
+        return sf::Image(h, out.data());
     }
 
     // Queried once. If the extension is missing the query raises GL_INVALID_ENUM
